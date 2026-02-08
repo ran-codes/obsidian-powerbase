@@ -9,6 +9,8 @@ import {
 	Sigma,
 	Zap,
 	Type,
+	ChevronRight,
+	ChevronDown,
 } from 'lucide-react';
 import {
 	useReactTable,
@@ -19,7 +21,7 @@ import {
 	RowData,
 } from '@tanstack/react-table';
 import type { TFile } from 'obsidian';
-import type { TableRowData, ColumnMeta, SortConfig, FocusedCell, QuickActionConfig, ColumnType } from '../types';
+import type { TableRowData, ColumnMeta, SortConfig, FocusedCell, GroupInfo, QuickActionConfig, ColumnType } from '../types';
 import { EditableCell } from './cells/EditableCell';
 import { FileNameCell } from './cells/FileNameCell';
 import { RelationCell } from './cells/RelationCell';
@@ -56,6 +58,7 @@ interface RelationalTableProps {
 	columns: ColumnMeta[];
 	sortConfig: SortConfig[];
 	summaryValues?: Record<string, any>;
+	groups?: GroupInfo[];
 	baseFolder?: string;
 	onUpdateRelation: (
 		file: TFile,
@@ -108,6 +111,7 @@ export function RelationalTable({
 	columns,
 	sortConfig,
 	summaryValues,
+	groups,
 	baseFolder,
 	onUpdateRelation,
 	onUpdateCell,
@@ -118,6 +122,16 @@ export function RelationalTable({
 }: RelationalTableProps) {
 	const [focusedCell, setFocusedCell] = useState<FocusedCell | null>(null);
 	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+	const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+	const toggleGroup = useCallback((groupKey: string) => {
+		setCollapsedGroups(prev => {
+			const next = new Set(prev);
+			if (next.has(groupKey)) next.delete(groupKey);
+			else next.add(groupKey);
+			return next;
+		});
+	}, []);
 
 	// Build column definitions from ColumnMeta[]
 	const columnDefs: ColumnDef<TableRowData, any>[] = useMemo(
@@ -404,7 +418,39 @@ export function RelationalTable({
 					))}
 				</thead>
 				<tbody>
-					{renderRows(table.getRowModel().rows)}
+					{groups && groups.length > 0
+						? groups.map((group) => {
+							const isCollapsed = collapsedGroups.has(group.key);
+							const groupRows = table.getRowModel().rows.slice(
+								group.startIndex,
+								group.startIndex + group.count
+							);
+							return (
+								<React.Fragment key={`group-${group.key}`}>
+									<tr
+										className="group-header-row"
+										onClick={() => toggleGroup(group.key)}
+									>
+										<td colSpan={columns.length}>
+											<span className="group-toggle">
+												{isCollapsed
+													? <ChevronRight size={14} />
+													: <ChevronDown size={14} />}
+											</span>
+											<span className="group-value">
+												{group.label || '(empty)'}
+											</span>
+											<span className="group-count">
+												{group.count}
+											</span>
+										</td>
+									</tr>
+									{!isCollapsed && renderRows(groupRows)}
+								</React.Fragment>
+							);
+						})
+						: renderRows(table.getRowModel().rows)
+					}
 				</tbody>
 				{summaryValues && (
 					<tfoot>

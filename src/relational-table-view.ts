@@ -1,6 +1,6 @@
 import { BasesView, BasesPropertyId, BasesEntry, BasesQueryResult, QueryController, Plugin, TFile } from 'obsidian';
 import type { Root } from 'react-dom/client';
-import type { TableRowData, ColumnMeta, SortConfig, RollupConfig, AggregationType, GroupData, QuickActionConfig, ColumnType } from './types';
+import type { TableRowData, ColumnMeta, SortConfig, RollupConfig, AggregationType, GroupData, GroupInfo, QuickActionConfig, ColumnType } from './types';
 
 /**
  * Module-level state for property filtering in view options.
@@ -108,21 +108,57 @@ export class RelationalTableView extends BasesView {
 		// Get ordered columns (typed as BasesPropertyId[])
 		const orderedProperties = config.getOrder();
 
-		// Transform BasesEntry[] into TableRowData[]
+		// Build rows from groupedData (pre-grouped by Bases framework)
+		const groupedData = (data as any).groupedData as any[] | undefined;
 		const entries = data.data;
-		if (!entries) return;
+		if (!entries && !groupedData) return;
 
-		const rows: TableRowData[] = entries.map((entry: BasesEntry) => {
-			const row: TableRowData = { file: entry.file };
-			for (const propId of orderedProperties) {
-				const value = entry.getValue(propId);
-				row[propId as string] = this.unwrapValue(value);
+		const rows: TableRowData[] = [];
+		const groups: GroupInfo[] = [];
+
+		if (groupedData && groupedData.length > 0) {
+			// Use grouped data — each group has .entries and optional .key
+			const hasRealGroups = groupedData.length > 1 || groupedData[0]?.hasKey?.();
+
+			for (const group of groupedData) {
+				const groupEntries: BasesEntry[] = group.entries ?? [];
+				const hasKey = typeof group.hasKey === 'function' ? group.hasKey() : false;
+				const keyVal = hasKey ? this.unwrapValue(group.key) : undefined;
+				const groupKey = hasKey ? String(keyVal ?? '') : '__ungrouped__';
+				const label = hasKey ? String(keyVal ?? '(empty)') : '';
+
+				if (hasRealGroups) {
+					groups.push({
+						key: groupKey,
+						label,
+						startIndex: rows.length,
+						count: groupEntries.length,
+					});
+				}
+
+				for (const entry of groupEntries) {
+					const row: TableRowData = { file: entry.file };
+					if (hasRealGroups) row.groupKey = groupKey;
+					for (const propId of orderedProperties) {
+						row[propId as string] = this.unwrapValue(entry.getValue(propId));
+					}
+					rows.push(row);
+				}
 			}
-			return row;
-		});
+		} else if (entries) {
+			// Fallback: flat data (no groupedData available)
+			for (const entry of entries) {
+				const row: TableRowData = { file: entry.file };
+				for (const propId of orderedProperties) {
+					row[propId as string] = this.unwrapValue(entry.getValue(propId));
+				}
+				rows.push(row);
+			}
+		}
 
 		// Build column metadata
-		const baseFolder = this.getBaseFolder(entries);
+		const allEntries = entries ?? (groupedData?.flatMap((g: any) => g.entries ?? []) ?? []);
+		const baseFolder = this.getBaseFolder(allEntries);
 		const columns: ColumnMeta[] = orderedProperties.map((propId) => {
 			const propIdStr = propId as string;
 			const isRelation = this.detectRelationColumn(propIdStr, rows, baseFolder);
@@ -187,8 +223,6 @@ export class RelationalTableView extends BasesView {
 			direction: s.direction as 'ASC' | 'DESC',
 		}));
 
-		// Grouping disabled - use flat rendering only
-
 		// Build summary values if available
 		let summaryValues: Record<string, any> | undefined;
 		try {
@@ -232,6 +266,7 @@ export class RelationalTableView extends BasesView {
 					columns,
 					sortConfig,
 					summaryValues,
+					groups: groups.length > 0 ? groups : undefined,
 					baseFolder,
 					onUpdateRelation: this.handleUpdateRelation.bind(this),
 					onUpdateCell: this.handleUpdateCell.bind(this),

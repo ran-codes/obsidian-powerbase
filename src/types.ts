@@ -4,6 +4,8 @@ import { TFile } from 'obsidian';
 export interface TableRowData {
 	/** The source TFile for this entry */
 	file: TFile;
+	/** Group key for group-by rendering (undefined when ungrouped) */
+	groupKey?: string;
 	/** Property values keyed by BasesPropertyId string */
 	[propertyId: string]: any;
 }
@@ -94,6 +96,14 @@ export interface GroupData {
 	groupKey: string;
 	groupValue: any;
 	rows: TableRowData[];
+}
+
+/** Group metadata passed to the React table component */
+export interface GroupInfo {
+	key: string;
+	label: string;
+	startIndex: number;
+	count: number;
 }
 
 /** Single property update in a quick action */
