@@ -21,27 +21,16 @@ export class BidirectionalSyncService {
 		oldLinks: string[],
 		newLinks: string[]
 	): void {
-		console.log('[Bases Power User] syncBackLinks called:', {
-			sourceFile: sourceFile.path,
-			propertyName,
-			oldLinks,
-			newLinks,
-		});
-
 		const { added, removed } = BidirectionalSyncService.diffLinks(
 			oldLinks,
 			newLinks
 		);
 
-		console.log('[Bases Power User] diffLinks result:', { added, removed });
-
 		const sourceBackLink = ParseService.formatAsWikiLink(sourceFile.path);
-		console.log('[Bases Power User] sourceBackLink:', sourceBackLink);
 
 		// Add back-links to newly added targets
 		for (const link of added) {
 			const parsed = ParseService.parseWikiLink(link);
-			console.log('[Bases Power User] Parsing added link:', link, '→', parsed);
 			if (!parsed) continue;
 
 			const targetFile = NoteSearchService.resolveWikiLink(
@@ -49,10 +38,8 @@ export class BidirectionalSyncService {
 				parsed.path,
 				sourceFile.path
 			);
-			console.log('[Bases Power User] Resolved target file:', targetFile?.path);
 			if (!targetFile) continue;
 
-			console.log('[Bases Power User] Adding back-link to:', targetFile.path, 'property:', propertyName);
 			BidirectionalSyncService.addBackLink(
 				app,
 				targetFile,

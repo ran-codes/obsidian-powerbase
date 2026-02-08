@@ -119,10 +119,20 @@ export function RelationEditor({
 					styles={{
 						control: (base) => ({
 							...base,
-							minHeight: '28px',
-							fontSize: 'var(--font-ui-small)',
+							minHeight: '20px',
+							height: '20px',
+							fontSize: 'var(--font-smallest)',
 							backgroundColor: 'var(--background-primary)',
 							borderColor: 'var(--background-modifier-border)',
+						}),
+						valueContainer: (base) => ({
+							...base,
+							padding: '0 4px',
+							height: '18px',
+						}),
+						indicatorsContainer: (base) => ({
+							...base,
+							height: '18px',
 						}),
 						menu: (base) => ({
 							...base,
@@ -143,12 +153,15 @@ export function RelationEditor({
 							backgroundColor:
 								'var(--background-modifier-hover)',
 							borderRadius: '12px',
+							height: '16px',
+							margin: '1px 2px',
 						}),
 						multiValueLabel: (base) => ({
 							...base,
 							color: 'var(--text-accent)',
 							fontSize: 'var(--font-smallest)',
-							padding: '2px 6px',
+							padding: '0 4px',
+							lineHeight: '16px',
 						}),
 						multiValueRemove: (base) => ({
 							...base,

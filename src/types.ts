@@ -20,6 +20,9 @@ export interface WikiLink {
 	resolvedFile?: TFile;
 }
 
+/** Column data type for icon display */
+export type ColumnType = 'file' | 'relation' | 'tags' | 'list' | 'checkbox' | 'number' | 'text' | 'date' | 'datetime' | 'rollup' | 'actions';
+
 /** Column metadata for the table */
 export interface ColumnMeta {
 	/** The Bases property ID string (e.g. "note.tags", "file.name") */
@@ -34,6 +37,10 @@ export interface ColumnMeta {
 	rollupConfig?: RollupConfig;
 	/** Folder path to filter relation picker options (auto-inferred from property name) */
 	relationFolderFilter?: string;
+	/** Whether this is a quick actions column */
+	isQuickActions?: boolean;
+	/** Column data type for header icon */
+	columnType?: ColumnType;
 }
 
 /** Sort direction */
@@ -87,4 +94,17 @@ export interface GroupData {
 	groupKey: string;
 	groupValue: any;
 	rows: TableRowData[];
+}
+
+/** Single property update in a quick action */
+export interface QuickActionUpdate {
+	property: string;
+	value: string; // raw value, may contain TODAY/NOW/TRUE/FALSE
+}
+
+/** Configuration for a single quick action button */
+export interface QuickActionConfig {
+	id: string;
+	label: string;
+	updates: QuickActionUpdate[];
 }

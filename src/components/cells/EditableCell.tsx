@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import type { CellContext } from '@tanstack/react-table';
 import type { TableRowData } from '../../types';
 import { TextEditor } from '../editors/TextEditor';
+import { ChipEditor } from '../editors/ChipEditor';
+import { DateEditor } from '../editors/DateEditor';
 
 /**
  * Editable cell renderer for non-relation, non-rollup columns.
@@ -9,7 +11,7 @@ import { TextEditor } from '../editors/TextEditor';
  * Edit mode: mounts inline editor (double-click or Enter to activate).
  *
  * Booleans toggle immediately on click (no editor needed).
- * Arrays remain read-only (complex editing deferred).
+ * Arrays/multitext use ChipEditor with inline cursor.
  */
 export function EditableCell({
 	getValue,
@@ -41,8 +43,27 @@ export function EditableCell({
 		focusedCell?.rowIndex === row.index &&
 		focusedCell?.colIndex === colIndex;
 
-	// Edit mode for text/number
-	if (editing && typeof value !== 'boolean' && !Array.isArray(value)) {
+	// Get column type early (needed for multitext detection)
+	const columnType = table.options.meta?.getColumnType?.(column.id);
+	const isMultitextColumn = columnType === 'list' || columnType === 'tags';
+	const isTagColumn = columnType === 'tags' || column.id === 'note.tags' || column.id.endsWith('.tags');
+	const isDateColumn = columnType === 'date';
+	const isDatetimeColumn = columnType === 'datetime';
+
+	// Edit mode for date/datetime
+	if (editing && (isDateColumn || isDatetimeColumn)) {
+		return (
+			<DateEditor
+				value={typeof value === 'string' ? value : null}
+				type={isDatetimeColumn ? 'datetime' : 'date'}
+				onSave={handleSave}
+				onCancel={handleCancel}
+			/>
+		);
+	}
+
+	// Edit mode for text/number (but NOT multitext columns - those use ChipEditor)
+	if (editing && typeof value !== 'boolean' && !Array.isArray(value) && !isMultitextColumn) {
 		const editorType = typeof value === 'number' ? 'number' : 'text';
 		return (
 			<TextEditor
@@ -56,6 +77,33 @@ export function EditableCell({
 
 	// Null/undefined
 	if (value === null || value === undefined) {
+		// If this is a list or tags column, show empty chip editor on click
+		if (isMultitextColumn) {
+			const allValues = table.options.meta?.getColumnValues?.(column.id) || [];
+
+			if (editing) {
+				return (
+					<ChipEditor
+						currentValues={[]}
+						suggestions={allValues}
+						isTagColumn={isTagColumn}
+						onAdd={(newValue) => {
+							table.options.meta?.updateCell?.(row.index, column.id, [newValue]);
+						}}
+						onRemove={() => {}}
+						onClose={() => setEditing(false)}
+					/>
+				);
+			}
+
+			return (
+				<div className="cell-chip-list" onClick={() => setEditing(true)}>
+					<span className="cell-empty-placeholder">Click to add...</span>
+				</div>
+			);
+		}
+
+		// Default: empty cell that can be edited
 		return (
 			<span
 				className={`cell-empty ${isFocused ? 'cell-focused' : ''}`}
@@ -86,16 +134,84 @@ export function EditableCell({
 		);
 	}
 
-	// Array — read-only (complex editing deferred)
-	if (Array.isArray(value)) {
+	// Array or multitext scalar — use ChipEditor
+	const isArrayData = Array.isArray(value);
+	const isScalarMultitext = isMultitextColumn && typeof value === 'string';
+
+	if (isArrayData || isScalarMultitext) {
+		// Normalize: scalar string → single-item array
+		const currentValues: string[] = isArrayData
+			? (value as any[]).filter(v => typeof v === 'string')
+			: [value as string];
+		const allValues = table.options.meta?.getColumnValues?.(column.id) || [];
+
+		const handleRemove = (index: number) => {
+			const newValue = currentValues.filter((_, i) => i !== index);
+			table.options.meta?.updateCell?.(row.index, column.id, newValue);
+		};
+
+		const handleAdd = (newValue: string) => {
+			const updated = [...currentValues, newValue];
+			table.options.meta?.updateCell?.(row.index, column.id, updated);
+		};
+
+		// Editing mode - show ChipEditor with inline cursor
+		if (editing) {
+			return (
+				<ChipEditor
+					currentValues={currentValues}
+					suggestions={allValues}
+					isTagColumn={isTagColumn}
+					onAdd={handleAdd}
+					onRemove={handleRemove}
+					onClose={() => setEditing(false)}
+				/>
+			);
+		}
+
+		// Display mode - show chips only
+		const chipClass = isTagColumn ? 'cell-chip cell-chip-tag' : 'cell-chip';
 		return (
-			<span className="cell-list">
-				{value.map((v, i) => (
-					<span key={i} className="cell-list-item">
-						{String(v)}
-						{i < value.length - 1 ? ', ' : ''}
+			<div
+				className="cell-chip-list"
+				onClick={() => setEditing(true)}
+			>
+				{currentValues.map((v, i) => (
+					<span key={i} className={chipClass}>
+						<span className="cell-chip-label">{v}</span>
+						<span
+							className="cell-chip-remove"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleRemove(i);
+							}}
+							title="Remove"
+						>
+							×
+						</span>
 					</span>
 				))}
+				{currentValues.length === 0 && (
+					<span className="cell-empty-placeholder">Click to add...</span>
+				)}
+			</div>
+		);
+	}
+
+	// Date/datetime — format nicely
+	if ((isDateColumn || isDatetimeColumn) && typeof value === 'string') {
+		const formatted = formatDateValue(value, isDatetimeColumn);
+		return (
+			<span
+				className={`cell-date ${isFocused ? 'cell-focused' : ''}`}
+				onDoubleClick={() => setEditing(true)}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter') setEditing(true);
+				}}
+				tabIndex={0}
+				title={value} // Show raw value on hover
+			>
+				{formatted}
 			</span>
 		);
 	}
@@ -113,4 +229,50 @@ export function EditableCell({
 			{String(value)}
 		</span>
 	);
+}
+
+/**
+ * Format a date/datetime string for display.
+ * Shows locale-appropriate format for better readability.
+ */
+function formatDateValue(value: string, isDatetime: boolean): string {
+	try {
+		// Parse the date string
+		const date = new Date(value);
+		if (isNaN(date.getTime())) return value;
+
+		if (isDatetime) {
+			// Show date and time
+			return date.toLocaleString(undefined, {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit',
+			});
+		} else {
+			// Just date - parse as local date to avoid timezone shift
+			// Input is YYYY-MM-DD, we want to display it without timezone conversion
+			const parts = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+			if (parts) {
+				const localDate = new Date(
+					parseInt(parts[1]),
+					parseInt(parts[2]) - 1,
+					parseInt(parts[3])
+				);
+				return localDate.toLocaleDateString(undefined, {
+					year: 'numeric',
+					month: 'short',
+					day: 'numeric',
+				});
+			}
+			return date.toLocaleDateString(undefined, {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+			});
+		}
+	} catch {
+		return value;
+	}
 }

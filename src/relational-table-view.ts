@@ -1,6 +1,6 @@
 import { BasesView, BasesPropertyId, BasesEntry, BasesQueryResult, QueryController, Plugin, TFile } from 'obsidian';
 import type { Root } from 'react-dom/client';
-import type { TableRowData, ColumnMeta, SortConfig, RollupConfig, AggregationType, GroupData } from './types';
+import type { TableRowData, ColumnMeta, SortConfig, RollupConfig, AggregationType, GroupData, QuickActionConfig, ColumnType } from './types';
 
 /**
  * Module-level state for property filtering in view options.
@@ -21,6 +21,7 @@ export class RelationalTableView extends BasesView {
 	private viewContainerEl: HTMLElement;
 	private plugin: Plugin;
 	private reactRoot: Root | null = null;
+	private propertyTypes: Record<string, string> | null = null;
 
 	constructor(
 		controller: QueryController,
@@ -34,6 +35,24 @@ export class RelationalTableView extends BasesView {
 
 	onload(): void {
 		this.viewContainerEl.addClass('relational-table-container');
+		this.loadPropertyTypes();
+	}
+
+	/**
+	 * Load property types from .obsidian/types.json
+	 */
+	private async loadPropertyTypes(): Promise<void> {
+		try {
+			const typesPath = `${this.app.vault.configDir}/types.json`;
+			const adapter = this.app.vault.adapter;
+			if (await adapter.exists(typesPath)) {
+				const content = await adapter.read(typesPath);
+				const parsed = JSON.parse(content);
+				this.propertyTypes = parsed?.types ?? null;
+			}
+		} catch (e) {
+			console.warn('[RelationalTableView] Failed to load types.json:', e);
+		}
 	}
 
 	onunload(): void {
@@ -43,7 +62,11 @@ export class RelationalTableView extends BasesView {
 		}
 	}
 
-	onDataUpdated(): void {
+	async onDataUpdated(): Promise<void> {
+		// Ensure property types are loaded before rendering
+		if (!this.propertyTypes) {
+			await this.loadPropertyTypes();
+		}
 		this.updateViewOptionsState();
 		this.renderTable();
 	}
@@ -100,13 +123,16 @@ export class RelationalTableView extends BasesView {
 		// Build column metadata
 		const baseFolder = this.getBaseFolder(entries);
 		const columns: ColumnMeta[] = orderedProperties.map((propId) => {
-			const isRelation = this.detectRelationColumn(propId as string, rows, baseFolder);
+			const propIdStr = propId as string;
+			const isRelation = this.detectRelationColumn(propIdStr, rows, baseFolder);
+			const columnType = this.detectColumnType(propIdStr, rows, isRelation);
 			return {
-				propertyId: propId as string,
+				propertyId: propIdStr,
 				displayName: config.getDisplayName(propId),
 				isRelation,
+				columnType,
 				relationFolderFilter: isRelation
-					? this.inferRelationFolder(propId as string, baseFolder)
+					? this.inferRelationFolder(propIdStr, baseFolder)
 					: undefined,
 			};
 		});
@@ -136,8 +162,21 @@ export class RelationalTableView extends BasesView {
 					isRelation: false,
 					isRollup: true,
 					rollupConfig: rc,
+					columnType: 'rollup',
 				});
 			}
+		}
+
+		// Add quick actions column if configured
+		const quickActionConfigs = this.getQuickActionConfigs();
+		if (quickActionConfigs.length > 0) {
+			columns.push({
+				propertyId: '__quickActions',
+				displayName: 'Actions',
+				isRelation: false,
+				isQuickActions: true,
+				columnType: 'actions',
+			});
 		}
 
 		// Get sort config for display indicators
@@ -147,26 +186,7 @@ export class RelationalTableView extends BasesView {
 			direction: s.direction as 'ASC' | 'DESC',
 		}));
 
-		// Build grouped data if available
-		let groups: GroupData[] | undefined;
-		try {
-			const groupedData = (data as any).groupedData;
-			if (groupedData && Array.isArray(groupedData) && groupedData.length > 0) {
-				groups = groupedData.map((group: any) => ({
-					groupKey: String(group.key ?? ''),
-					groupValue: this.unwrapValue(group.key),
-					rows: (group.entries || []).map((entry: BasesEntry) => {
-						const row: TableRowData = { file: entry.file };
-						for (const propId of orderedProperties) {
-							row[propId as string] = this.unwrapValue(entry.getValue(propId));
-						}
-						return row;
-					}),
-				}));
-			}
-		} catch {
-			// groupedData not available — use flat rendering
-		}
+		// Grouping disabled - use flat rendering only
 
 		// Build summary values if available
 		let summaryValues: Record<string, any> | undefined;
@@ -210,11 +230,16 @@ export class RelationalTableView extends BasesView {
 					rows,
 					columns,
 					sortConfig,
-					groups,
 					summaryValues,
 					baseFolder,
 					onUpdateRelation: this.handleUpdateRelation.bind(this),
 					onUpdateCell: this.handleUpdateCell.bind(this),
+					quickActions: quickActionConfigs.length > 0 ? quickActionConfigs : undefined,
+					onExecuteQuickAction: quickActionConfigs.length > 0
+						? this.handleExecuteQuickAction.bind(this)
+						: undefined,
+					onHideColumn: this.handleHideColumn.bind(this),
+					onSortColumn: this.handleSortColumn.bind(this),
 				})
 			)
 		);
@@ -284,16 +309,17 @@ export class RelationalTableView extends BasesView {
 				return true;
 			}
 
-			// 1b: all items resolve to vault files (covers LinkValue.data
+			// 1b: all items resolve to vault files within baseFolder (covers LinkValue.data
 			//     returning bare paths like "Project Alpha" instead of "[[Project Alpha]]")
 			if (val.every((item: string) =>
-				NoteSearchService.isTextReference(this.app, item)
+				NoteSearchService.isTextReference(this.app, item, baseFolder)
 			)) {
 				return true;
 			}
 		}
 
 		// Pattern 2: scalar text references (e.g. project: "My Project")
+		// Only matches files within the baseFolder to avoid false positives
 		let textRefHits = 0;
 		let textRefSamples = 0;
 		for (const row of sampled) {
@@ -302,7 +328,7 @@ export class RelationalTableView extends BasesView {
 			if (typeof val !== 'string') continue;
 			if (WIKILINK_REGEX.test(val)) continue;
 			textRefSamples++;
-			if (NoteSearchService.isTextReference(this.app, val)) {
+			if (NoteSearchService.isTextReference(this.app, val, baseFolder)) {
 				textRefHits++;
 			}
 		}
@@ -320,6 +346,48 @@ export class RelationalTableView extends BasesView {
 	}
 
 	/**
+	 * Detect the column data type for header icon display.
+	 * First checks Obsidian's property type registry, then falls back to data detection.
+	 */
+	private detectColumnType(propId: string, rows: TableRowData[], isRelation: boolean): ColumnType {
+		// Special columns
+		if (propId === 'file.name') return 'file';
+		if (isRelation) return 'relation';
+		if (propId === 'note.tags' || propId.endsWith('.tags')) return 'tags';
+
+		// Check Obsidian's property type registry
+		const propertyName = this.extractPropertyName(propId);
+		const registeredType = this.propertyTypes?.[propertyName];
+		if (registeredType) {
+			switch (registeredType) {
+				case 'multitext': return 'list';
+				case 'tags': return 'tags';
+				case 'checkbox': return 'checkbox';
+				case 'number': return 'number';
+				case 'date': return 'date';
+				case 'datetime': return 'datetime';
+				case 'text':
+				default:
+					// Fall through to data detection for text types
+					break;
+			}
+		}
+
+		// Fall back to data-based detection
+		for (const row of rows.slice(0, 10)) {
+			const val = row[propId];
+			if (val === null || val === undefined) continue;
+
+			if (typeof val === 'boolean') return 'checkbox';
+			if (typeof val === 'number') return 'number';
+			if (Array.isArray(val)) return 'list';
+			if (typeof val === 'string') return 'text';
+		}
+
+		return 'text'; // Default
+	}
+
+	/**
 	 * Handle relation updates from the React table.
 	 * Writes wikilinks to frontmatter via EditEngineService.
 	 */
@@ -330,12 +398,6 @@ export class RelationalTableView extends BasesView {
 	): Promise<void> {
 		const { EditEngineService } = require('./services/EditEngineService');
 		const { BidirectionalSyncService } = require('./services/BidirectionalSyncService');
-
-		console.log('[Bases Power User] handleUpdateRelation called:', {
-			file: file.path,
-			propertyId,
-			newLinks,
-		});
 
 		const propertyName = this.extractPropertyName(propertyId);
 
@@ -352,8 +414,6 @@ export class RelationalTableView extends BasesView {
 			? oldRaw.filter((v: any) => typeof v === 'string')
 			: [];
 
-		console.log('[Bases Power User] oldLinks:', oldLinks);
-
 		// Persist the primary edit
 		EditEngineService.getInstance(this.app).updateRowFile({
 			file,
@@ -364,37 +424,23 @@ export class RelationalTableView extends BasesView {
 		// Sync back-links (non-blocking)
 		// Look up reverse property name from bidi config
 		const bidiConfigs = this.getBidiConfigs();
-		console.log('[Bases Power User] bidiConfigs:', JSON.stringify(bidiConfigs));
 
 		// Normalize comparison: config may store "project" or "note.project"
 		const propertyNameOnly = this.extractPropertyName(propertyId);
-		const bidiMatch = bidiConfigs.find((b) => {
-			// Match if column equals full propertyId OR just the property name
-			const match = b.column === propertyId ||
-			              b.column === propertyNameOnly ||
-			              `note.${b.column}` === propertyId;
-			console.log('[Bases Power User] Comparing:', JSON.stringify(b.column), 'vs', JSON.stringify(propertyId), '/', JSON.stringify(propertyNameOnly), '→', match);
-			return match;
-		});
-		console.log('[Bases Power User] bidiMatch:', bidiMatch, 'for propertyId:', propertyId);
+		const bidiMatch = bidiConfigs.find((b) =>
+			b.column === propertyId ||
+			b.column === propertyNameOnly ||
+			`note.${b.column}` === propertyId
+		);
 
-		const reverseProperty = bidiMatch?.reverseProperty;
-
-		if (reverseProperty) {
-			console.log('[Bases Power User] Calling syncBackLinks:', {
-				reverseProperty,
-				oldLinks,
-				newLinks,
-			});
+		if (bidiMatch?.reverseProperty) {
 			BidirectionalSyncService.syncBackLinks(
 				this.app,
 				file,
-				reverseProperty,
+				bidiMatch.reverseProperty,
 				oldLinks,
 				newLinks
 			);
-		} else {
-			console.log('[Bases Power User] No bidi match found, skipping sync');
 		}
 	}
 
@@ -415,6 +461,36 @@ export class RelationalTableView extends BasesView {
 			value,
 		});
 	}
+
+	/**
+	 * Hide a column by removing it from the order.
+	 */
+	private handleHideColumn(columnId: string): void {
+		const currentOrder = this.config.getOrder();
+		const newOrder = currentOrder.filter(id => String(id) !== columnId);
+		// Note: The API may not support modifying order directly
+		// This is a best-effort implementation
+		(this.config as any).set?.('order', newOrder);
+	}
+
+	/**
+	 * Sort by a column.
+	 */
+	private handleSortColumn(columnId: string, direction: 'ASC' | 'DESC' | null): void {
+		if (direction === null) {
+			// Clear sort
+			(this.config as any).set?.('sort', []);
+		} else {
+			(this.config as any).set?.('sort', [{
+				property: columnId,
+				direction,
+			}]);
+		}
+	}
+
+	/**
+	 * Group by a column.
+	 */
 
 	/**
 	 * Extract frontmatter key from BasesPropertyId.
@@ -547,6 +623,28 @@ export class RelationalTableView extends BasesView {
 		return configs;
 	}
 
+	/**
+	 * Parse quick action configuration from view options DSL.
+	 */
+	private getQuickActionConfigs(): QuickActionConfig[] {
+		const { QuickActionService } = require('./services/QuickActionService');
+		const dsl = this.config.get('quickActions') as string | undefined;
+		if (!dsl?.trim()) return [];
+		return QuickActionService.parseDSL(dsl);
+	}
+
+	/**
+	 * Execute a quick action on a file.
+	 * Uses processFrontMatter for atomic updates.
+	 */
+	private async handleExecuteQuickAction(
+		file: TFile,
+		action: QuickActionConfig
+	): Promise<void> {
+		const { QuickActionService } = require('./services/QuickActionService');
+		await QuickActionService.execute(this.app, file, action.updates);
+	}
+
 	static getViewOptions(): any[] {
 		const aggregationOptions: Record<string, string> = {
 			'count': 'Count (all links)',
@@ -677,6 +775,13 @@ export class RelationalTableView extends BasesView {
 					'2': '2',
 					'3': '3',
 				},
+			},
+			{
+				type: 'text',
+				key: 'quickActions',
+				displayName: 'Quick Actions',
+				placeholder: 'Done:status=done,completed=TODAY;Archive:archived=TRUE',
+				default: '',
 			},
 			// Drill-down groups (collapsible, conditional)
 			rollupGroup(1),

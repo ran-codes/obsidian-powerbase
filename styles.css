@@ -18,11 +18,10 @@
 	text-align: left;
 	padding: 6px 12px;
 	border-bottom: 2px solid var(--background-modifier-border);
+	border-right: 1px solid var(--background-modifier-border);
 	font-weight: var(--font-semibold);
 	color: var(--text-muted);
-	font-size: var(--font-smallest);
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	font-size: var(--font-ui-small);
 	position: sticky;
 	top: 0;
 	background: var(--background-primary);
@@ -31,16 +30,42 @@
 	white-space: nowrap;
 }
 
+.relational-table thead th:last-child {
+	border-right: none;
+}
+
 /* Cells */
 .relational-table td {
 	padding: 6px 12px;
 	border-bottom: 1px solid var(--background-modifier-border);
+	border-right: 1px solid var(--background-modifier-border);
 	vertical-align: middle;
+}
+
+.relational-table td:last-child {
+	border-right: none;
 }
 
 /* Row hover */
 .relational-table tbody tr:hover td {
 	background-color: var(--background-modifier-hover);
+}
+
+/* Column header */
+.column-header {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.column-type-icon {
+	color: var(--text-faint);
+	font-size: var(--font-smallest);
+	opacity: 0.8;
+}
+
+.column-name {
+	/* Default styling */
 }
 
 /* Sort indicator */
@@ -73,12 +98,214 @@
 	display: inline-block;
 }
 
-.cell-list {
-	display: inline;
+/* List/array chip display */
+.cell-chip-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	align-items: center;
+	max-width: 100%;
+	overflow: hidden;
 }
 
-.cell-list-item {
+.cell-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 4px 0 8px;
+	border-radius: 12px;
+	background-color: var(--background-modifier-hover);
+	font-size: var(--font-smallest);
 	white-space: nowrap;
+	transition: background-color 100ms ease;
+	height: 20px;
+	line-height: 20px;
+	box-sizing: border-box;
+}
+
+.cell-chip:hover {
+	background-color: var(--background-modifier-active-hover);
+}
+
+.cell-chip-label {
+	color: var(--text-normal);
+}
+
+.cell-chip-remove {
+	margin-left: 4px;
+	color: var(--text-faint);
+	cursor: pointer;
+	font-size: 12px;
+	line-height: 1;
+	padding: 0 2px;
+	border-radius: 50%;
+}
+
+.cell-chip-remove:hover {
+	color: var(--text-error);
+	background-color: var(--background-modifier-error);
+}
+
+/* Tag-specific styling (purple) */
+.cell-chip-tag {
+	background-color: var(--tag-background, hsla(258, 60%, 65%, 0.2));
+}
+
+.cell-chip-tag:hover {
+	background-color: var(--tag-background-hover, hsla(258, 60%, 65%, 0.3));
+}
+
+.cell-chip-tag .cell-chip-label {
+	color: var(--tag-color, hsl(258, 60%, 65%));
+}
+
+/* Empty placeholder for list cells */
+.cell-empty-placeholder {
+	color: var(--text-faint);
+	font-size: var(--font-smallest);
+	font-style: italic;
+	height: 20px;
+	line-height: 20px;
+	display: inline-block;
+}
+
+.cell-chip-list {
+	cursor: pointer;
+	min-height: 24px;
+}
+
+.cell-chip-list:hover .cell-empty-placeholder {
+	color: var(--text-muted);
+}
+
+/* Chip Editor - unified editor for tags, lists, relations */
+.chip-editor {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	align-items: center;
+	min-height: 20px;
+	cursor: text;
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
+	border-radius: 4px;
+	padding: 2px;
+	background: var(--background-primary);
+}
+
+.chip-editor-cursor {
+	display: inline-flex;
+	align-items: center;
+	position: relative;
+	height: 20px;
+}
+
+/* Hidden input - captures keystrokes but invisible */
+.chip-editor-input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	padding: 0;
+	margin: 0;
+	border: none;
+	pointer-events: none;
+}
+
+/* Visible typed text */
+.chip-editor-text {
+	color: var(--text-normal);
+	font-size: var(--font-smallest);
+	line-height: 20px;
+	white-space: pre;
+}
+
+/* Blinking caret */
+.chip-editor-caret {
+	color: var(--text-normal);
+	font-weight: normal;
+	animation: blink 1s step-end infinite;
+	font-size: var(--font-ui-small);
+	line-height: 20px;
+	margin-left: 1px;
+}
+
+@keyframes blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0; }
+}
+
+.chip-editor-dropdown {
+	z-index: 1000;
+	min-width: 120px;
+	max-height: 200px;
+	overflow-y: auto;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.chip-editor-option {
+	padding: 6px 10px;
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+
+.chip-editor-option:hover,
+.chip-editor-option.selected {
+	background: var(--background-modifier-hover);
+}
+
+/* Legacy list editor (keep for compatibility) */
+.list-editor {
+	position: relative;
+	display: inline-flex;
+	flex: 1;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.list-editor-input {
+	padding: 0 6px;
+	border: 1px solid var(--interactive-accent);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: var(--font-smallest);
+	outline: none;
+	width: 60px;
+	min-width: 40px;
+	max-width: 100%;
+	height: 20px;
+	line-height: 18px;
+	box-sizing: border-box;
+}
+
+.list-editor-dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 100;
+	min-width: 120px;
+	max-height: 200px;
+	overflow-y: auto;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	margin-top: 2px;
+}
+
+.list-editor-option {
+	padding: 6px 10px;
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+
+.list-editor-option:hover {
+	background: var(--background-modifier-hover);
 }
 
 /* Relation cell */
@@ -101,13 +328,16 @@
 .relation-chip {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 4px 2px 8px;
+	padding: 0 4px 0 8px;
 	border-radius: 12px;
 	background-color: var(--background-modifier-hover);
 	font-size: var(--font-smallest);
 	max-width: 150px;
 	white-space: nowrap;
 	transition: background-color 100ms ease;
+	height: 20px;
+	line-height: 20px;
+	box-sizing: border-box;
 }
 
 .relation-chip:hover {
@@ -165,7 +395,8 @@
 
 /* Relation editor wrapper */
 .relation-editor {
-	min-width: 200px;
+	min-width: 60px;
+	max-width: 100%;
 }
 
 /* Rollup cells */
@@ -203,16 +434,17 @@
 	right: 0;
 	top: 0;
 	height: 100%;
-	width: 4px;
+	width: 6px;
 	cursor: col-resize;
 	user-select: none;
 	touch-action: none;
+	z-index: 2;
 }
 
 .resize-handle:hover,
 .resize-handle.resizing {
 	background-color: var(--interactive-accent);
-	opacity: 0.5;
+	opacity: 0.8;
 }
 
 /* Inline cell editor */
@@ -298,4 +530,240 @@
 	height: 100px;
 	color: var(--text-faint);
 	font-size: var(--font-ui-small);
+}
+
+/* Quick actions cell */
+.quick-actions-cell {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	align-items: center;
+}
+
+/* Quick action button */
+.quick-action-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px 8px;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	font-size: var(--font-smallest);
+	cursor: pointer;
+	transition: all 100ms ease;
+	white-space: nowrap;
+	min-width: 40px;
+}
+
+.quick-action-btn:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+	color: var(--interactive-accent);
+}
+
+.quick-action-btn:active {
+	background: var(--background-modifier-active-hover);
+}
+
+.quick-action-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Executing state */
+.quick-action-btn.executing {
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	cursor: wait;
+}
+
+/* Success state */
+.quick-action-btn.success {
+	background: var(--background-modifier-success);
+	border-color: var(--text-success);
+	color: var(--text-success);
+}
+
+/* Column context menu */
+.column-context-menu {
+	position: fixed;
+	z-index: 1000;
+	min-width: 180px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	padding: 4px 0;
+}
+
+.column-menu-item {
+	display: flex;
+	align-items: center;
+	padding: 6px 12px;
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	gap: 8px;
+}
+
+.column-menu-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.column-menu-item.checked {
+	color: var(--interactive-accent);
+}
+
+.column-menu-item.danger {
+	color: var(--text-error);
+}
+
+.column-menu-item.danger:hover {
+	background: var(--background-modifier-error);
+}
+
+.column-menu-item.disabled {
+	color: var(--text-faint);
+	cursor: not-allowed;
+}
+
+.column-menu-icon {
+	width: 16px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
+.column-menu-label {
+	flex: 1;
+}
+
+.column-menu-check {
+	color: var(--interactive-accent);
+	font-size: 12px;
+}
+
+.column-menu-separator {
+	height: 1px;
+	background: var(--background-modifier-border);
+	margin: 4px 0;
+}
+
+.column-menu-item.column-menu-info {
+	cursor: default;
+	color: var(--text-muted);
+}
+
+.column-menu-item.column-menu-info:hover {
+	background: transparent;
+}
+
+.column-menu-value {
+	margin-left: auto;
+	color: var(--text-faint);
+	font-size: var(--font-smallest);
+}
+
+/* File context menu */
+.file-context-menu {
+	position: fixed;
+	z-index: 1000;
+	min-width: 200px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	padding: 4px 0;
+}
+
+.file-menu-item {
+	display: flex;
+	align-items: center;
+	padding: 6px 12px;
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	gap: 8px;
+}
+
+.file-menu-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.file-menu-item svg {
+	color: var(--text-muted);
+}
+
+.file-menu-item.file-menu-danger {
+	color: var(--text-error);
+}
+
+.file-menu-item.file-menu-danger svg {
+	color: var(--text-error);
+}
+
+.file-menu-item.file-menu-danger:hover {
+	background: var(--background-modifier-error);
+}
+
+.file-menu-separator {
+	height: 1px;
+	background: var(--background-modifier-border);
+	margin: 4px 0;
+}
+
+/* Date cell */
+.cell-date {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 200px;
+	display: inline-block;
+	cursor: pointer;
+}
+
+/* Date editor */
+.date-editor {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.date-editor-input {
+	padding: 2px 6px;
+	border: 1px solid var(--interactive-accent);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	font-family: inherit;
+	outline: none;
+	min-width: 120px;
+}
+
+.date-editor-input:focus {
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.date-editor-clear {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border: none;
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+	cursor: pointer;
+	border-radius: 50%;
+	font-size: 12px;
+	padding: 0;
+	line-height: 1;
+}
+
+.date-editor-clear:hover {
+	background: var(--background-modifier-error);
+	color: var(--text-error);
 }

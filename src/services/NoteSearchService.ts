@@ -57,13 +57,21 @@ export class NoteSearchService {
 	 * Resolve a plain text reference to a TFile.
 	 * Matches by basename (exact, case-insensitive), then by frontmatter alias.
 	 * Handles the common pattern: `project: "My Project"` → `projects/My Project.md`.
+	 *
+	 * @param folderPath - Optional folder to scope the search (only files under this folder)
 	 */
-	static resolveTextReference(app: App, text: string): TFile | null {
+	static resolveTextReference(app: App, text: string, folderPath?: string): TFile | null {
 		if (!text || typeof text !== 'string') return null;
 		const lowerText = text.toLowerCase().trim();
 		if (!lowerText) return null;
 
-		const allFiles = app.vault.getMarkdownFiles();
+		let allFiles = app.vault.getMarkdownFiles();
+
+		// Scope to folder if provided
+		if (folderPath) {
+			const prefix = folderPath.endsWith('/') ? folderPath : folderPath + '/';
+			allFiles = allFiles.filter((f) => f.path.startsWith(prefix));
+		}
 
 		// First: exact basename match (case-insensitive)
 		const byBasename = allFiles.find(
@@ -89,8 +97,10 @@ export class NoteSearchService {
 	/**
 	 * Check if a text value resolves to any file in the vault.
 	 * Used for detecting text-reference relation columns.
+	 *
+	 * @param folderPath - Optional folder to scope the search (only files under this folder)
 	 */
-	static isTextReference(app: App, text: string): boolean {
-		return NoteSearchService.resolveTextReference(app, text) !== null;
+	static isTextReference(app: App, text: string, folderPath?: string): boolean {
+		return NoteSearchService.resolveTextReference(app, text, folderPath) !== null;
 	}
 }

@@ -1,4 +1,15 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, ReactNode } from 'react';
+import {
+	FileText,
+	ArrowUpRight,
+	Tag,
+	List,
+	CheckSquare,
+	Hash,
+	Sigma,
+	Zap,
+	Type,
+} from 'lucide-react';
 import {
 	useReactTable,
 	getCoreRowModel,
@@ -8,11 +19,13 @@ import {
 	RowData,
 } from '@tanstack/react-table';
 import type { TFile } from 'obsidian';
-import type { TableRowData, ColumnMeta, SortConfig, FocusedCell, GroupData } from '../types';
+import type { TableRowData, ColumnMeta, SortConfig, FocusedCell, QuickActionConfig, ColumnType } from '../types';
 import { EditableCell } from './cells/EditableCell';
 import { FileNameCell } from './cells/FileNameCell';
 import { RelationCell } from './cells/RelationCell';
 import { RollupCell } from './cells/RollupCell';
+import { QuickActionsCell } from './cells/QuickActionsCell';
+import { ColumnContextMenu } from './ColumnContextMenu';
 
 // Extend TableMeta for all table interactions
 declare module '@tanstack/react-table' {
@@ -31,6 +44,10 @@ declare module '@tanstack/react-table' {
 		setFocusedCell: (cell: FocusedCell | null) => void;
 		baseFolder?: string;
 		getRelationFolder: (columnId: string) => string | undefined;
+		getColumnType: (columnId: string) => ColumnType | undefined;
+		getColumnValues: (columnId: string) => string[];
+		quickActions?: QuickActionConfig[];
+		executeQuickAction?: (rowIndex: number, action: QuickActionConfig) => Promise<void>;
 	}
 }
 
@@ -38,7 +55,6 @@ interface RelationalTableProps {
 	rows: TableRowData[];
 	columns: ColumnMeta[];
 	sortConfig: SortConfig[];
-	groups?: GroupData[];
 	summaryValues?: Record<string, any>;
 	baseFolder?: string;
 	onUpdateRelation: (
@@ -51,21 +67,57 @@ interface RelationalTableProps {
 		propertyId: string,
 		value: any
 	) => void;
+	quickActions?: QuickActionConfig[];
+	onExecuteQuickAction?: (file: TFile, action: QuickActionConfig) => Promise<void>;
+	onHideColumn?: (columnId: string) => void;
+	onSortColumn?: (columnId: string, direction: 'ASC' | 'DESC' | null) => void;
+}
+
+interface ContextMenuState {
+	isOpen: boolean;
+	x: number;
+	y: number;
+	columnId: string;
+	columnName: string;
+	columnType?: ColumnType;
 }
 
 const columnHelper = createColumnHelper<TableRowData>();
+
+const ICON_SIZE = 16;
+
+/** Get the Lucide icon for a column type */
+function getColumnTypeIcon(type?: ColumnType): ReactNode {
+	const props = { size: ICON_SIZE, strokeWidth: 2 };
+	switch (type) {
+		case 'file': return <FileText {...props} />;
+		case 'relation': return <ArrowUpRight {...props} />;
+		case 'tags': return <Tag {...props} />;
+		case 'list': return <List {...props} />;
+		case 'checkbox': return <CheckSquare {...props} />;
+		case 'number': return <Hash {...props} />;
+		case 'rollup': return <Sigma {...props} />;
+		case 'actions': return <Zap {...props} />;
+		case 'text': return <Type {...props} />;
+		default: return null;
+	}
+}
 
 export function RelationalTable({
 	rows,
 	columns,
 	sortConfig,
-	groups,
 	summaryValues,
 	baseFolder,
 	onUpdateRelation,
 	onUpdateCell,
+	quickActions,
+	onExecuteQuickAction,
+	onHideColumn,
+	onSortColumn,
 }: RelationalTableProps) {
 	const [focusedCell, setFocusedCell] = useState<FocusedCell | null>(null);
+	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
 	// Build column definitions from ColumnMeta[]
 	const columnDefs: ColumnDef<TableRowData, any>[] = useMemo(
@@ -79,14 +131,17 @@ export function RelationalTable({
 							const sort = sortConfig.find(
 								(s) => s.propertyId === col.propertyId
 							);
+							const typeIcon = getColumnTypeIcon(col.columnType);
 							return (
-								<span>
-									{col.displayName}
-									{col.isRollup && (
-										<span className="rollup-indicator">
-											{'\u03A3'}
+								<span className="column-header">
+									{typeIcon !== null && (
+										<span className="column-type-icon">
+											{typeIcon}
 										</span>
 									)}
+									<span className="column-name">
+										{col.displayName}
+									</span>
 									{sort && (
 										<span className="sort-indicator">
 											{sort.direction === 'ASC'
@@ -97,13 +152,15 @@ export function RelationalTable({
 								</span>
 							);
 						},
-						cell: col.isRollup
-							? RollupCell
-							: col.isRelation
-								? RelationCell
-								: col.propertyId === 'file.name'
-									? FileNameCell
-									: EditableCell,
+						cell: col.isQuickActions
+							? QuickActionsCell
+							: col.isRollup
+								? RollupCell
+								: col.isRelation
+									? RelationCell
+									: col.propertyId === 'file.name'
+										? FileNameCell
+										: EditableCell,
 						size: 150,
 						minSize: 50,
 					}
@@ -144,8 +201,58 @@ export function RelationalTable({
 				const col = columns.find((c) => c.propertyId === columnId);
 				return col?.relationFolderFilter ?? baseFolder;
 			},
+			getColumnType: (columnId: string) => {
+				const col = columns.find((c) => c.propertyId === columnId);
+				return col?.columnType;
+			},
+			getColumnValues: (columnId: string) => {
+				// Collect all unique values from this column across all rows
+				const values: string[] = [];
+				for (const row of rows) {
+					const val = row[columnId];
+					if (Array.isArray(val)) {
+						for (const item of val) {
+							if (typeof item === 'string' && item) {
+								values.push(item);
+							}
+						}
+					} else if (typeof val === 'string' && val) {
+						values.push(val);
+					}
+				}
+				return [...new Set(values)];
+			},
+			quickActions,
+			executeQuickAction: onExecuteQuickAction
+				? async (rowIndex: number, action: QuickActionConfig) => {
+						const file = rows[rowIndex]?.file;
+						if (file) {
+							await onExecuteQuickAction(file, action);
+						}
+				  }
+				: undefined,
 		},
 	});
+
+	// Column header right-click handler
+	const handleColumnContextMenu = useCallback(
+		(e: React.MouseEvent, columnId: string, columnName: string, columnType?: ColumnType) => {
+			e.preventDefault();
+			setContextMenu({
+				isOpen: true,
+				x: e.clientX,
+				y: e.clientY,
+				columnId,
+				columnName,
+				columnType,
+			});
+		},
+		[]
+	);
+
+	const closeContextMenu = useCallback(() => {
+		setContextMenu(null);
+	}, []);
 
 	// Keyboard navigation handler
 	const handleTableKeyDown = useCallback(
@@ -262,68 +369,42 @@ export function RelationalTable({
 				<thead>
 					{table.getHeaderGroups().map((headerGroup) => (
 						<tr key={headerGroup.id}>
-							{headerGroup.headers.map((header) => (
-								<th
-									key={header.id}
-									style={{ width: header.getSize() }}
-								>
-									{header.isPlaceholder
-										? null
-										: flexRender(
-												header.column.columnDef
-													.header,
-												header.getContext()
-										  )}
-									<div
-										onMouseDown={header.getResizeHandler()}
-										onTouchStart={header.getResizeHandler()}
-										className={`resize-handle ${
-											header.column.getIsResizing()
-												? 'resizing'
-												: ''
-										}`}
-									/>
-								</th>
-							))}
+							{headerGroup.headers.map((header) => {
+								const col = columns.find(c => c.propertyId === header.id);
+								return (
+									<th
+										key={header.id}
+										style={{ width: header.getSize() }}
+										onContextMenu={(e) => {
+											if (col && !col.isQuickActions && !col.isRollup) {
+												handleColumnContextMenu(e, header.id, col.displayName, col.columnType);
+											}
+										}}
+									>
+										{header.isPlaceholder
+											? null
+											: flexRender(
+													header.column.columnDef
+														.header,
+													header.getContext()
+											  )}
+										<div
+											onMouseDown={header.getResizeHandler()}
+											onTouchStart={header.getResizeHandler()}
+											className={`resize-handle ${
+												header.column.getIsResizing()
+													? 'resizing'
+													: ''
+											}`}
+										/>
+									</th>
+								);
+							})}
 						</tr>
 					))}
 				</thead>
 				<tbody>
-					{groups && groups.length > 0
-						? groups.map((group) => (
-								<React.Fragment key={group.groupKey}>
-									<tr className="group-header-row">
-										<td
-											colSpan={columns.length}
-											className="group-header"
-										>
-											<span className="group-toggle">
-												{'\u25BE'}
-											</span>
-											<span className="group-value">
-												{String(
-													group.groupValue ?? ''
-												)}
-											</span>
-											<span className="group-count">
-												({group.rows.length})
-											</span>
-										</td>
-									</tr>
-									{renderRows(
-										table
-											.getRowModel()
-											.rows.filter((r: any) =>
-												group.rows.some(
-													(gr) =>
-														gr.file.path ===
-														r.original.file.path
-												)
-											)
-									)}
-								</React.Fragment>
-						  ))
-						: renderRows(table.getRowModel().rows)}
+					{renderRows(table.getRowModel().rows)}
 				</tbody>
 				{summaryValues && (
 					<tfoot>
@@ -346,6 +427,25 @@ export function RelationalTable({
 					</tfoot>
 				)}
 			</table>
+
+			{/* Column context menu */}
+			{contextMenu && (
+				<ColumnContextMenu
+					x={contextMenu.x}
+					y={contextMenu.y}
+					columnId={contextMenu.columnId}
+					columnName={contextMenu.columnName}
+					columnType={contextMenu.columnType}
+					currentSort={
+						sortConfig.find(s => s.propertyId === contextMenu.columnId)?.direction ?? null
+					}
+					onClose={closeContextMenu}
+					onHideColumn={() => onHideColumn?.(contextMenu.columnId)}
+					onSortAsc={() => onSortColumn?.(contextMenu.columnId, 'ASC')}
+					onSortDesc={() => onSortColumn?.(contextMenu.columnId, 'DESC')}
+					onClearSort={() => onSortColumn?.(contextMenu.columnId, null)}
+				/>
+			)}
 		</div>
 	);
 }
