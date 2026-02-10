@@ -8,12 +8,18 @@ interface ColumnContextMenuProps {
 	columnId: string;
 	columnName: string;
 	columnType?: ColumnType;
+	isPriority?: boolean;
+	priorityEnhanced?: boolean;
+	isRelation?: boolean;
+	relationEnhanced?: boolean;
 	currentSort?: 'ASC' | 'DESC' | null;
 	onClose: () => void;
 	onHideColumn: () => void;
 	onSortAsc: () => void;
 	onSortDesc: () => void;
 	onClearSort: () => void;
+	onTogglePriorityEnhanced?: (enabled: boolean) => void;
+	onToggleRelationEnhanced?: (enabled: boolean) => void;
 }
 
 /** Get human-readable type name */
@@ -28,6 +34,7 @@ function getTypeName(type?: ColumnType): string {
 		case 'text': return 'Text';
 		case 'rollup': return 'Rollup';
 		case 'actions': return 'Actions';
+		case 'priority': return 'Priority';
 		default: return 'Text';
 	}
 }
@@ -38,12 +45,18 @@ export function ColumnContextMenu({
 	columnId,
 	columnName,
 	columnType,
+	isPriority,
+	priorityEnhanced,
+	isRelation,
+	relationEnhanced,
 	currentSort,
 	onClose,
 	onHideColumn,
 	onSortAsc,
 	onSortDesc,
 	onClearSort,
+	onTogglePriorityEnhanced,
+	onToggleRelationEnhanced,
 }: ColumnContextMenuProps) {
 	const menuRef = useRef<HTMLDivElement>(null);
 
@@ -152,6 +165,46 @@ export function ColumnContextMenu({
 				<span className="column-menu-label">Property type</span>
 				<span className="column-menu-value">{getTypeName(columnType)}</span>
 			</div>
+
+			{isRelation && (
+				<>
+					<div className="column-menu-item column-menu-info">
+						<span className="column-menu-icon">⚑</span>
+						<span className="column-menu-label">Inferred Relation Column</span>
+					</div>
+					<div
+						className={`column-menu-item ${relationEnhanced ? 'checked' : ''}`}
+						onClick={() => onToggleRelationEnhanced?.(!relationEnhanced)}
+						title="Wikilink chips with note links, folder-filtered picker, and bidirectional sync"
+					>
+						<span className="column-menu-icon">
+							{relationEnhanced ? '☑' : '☐'}
+						</span>
+						<span className="column-menu-label">Enhanced UI</span>
+						{relationEnhanced && <span className="column-menu-check">✓</span>}
+					</div>
+				</>
+			)}
+
+			{isPriority && (
+				<>
+					<div className="column-menu-item column-menu-info">
+						<span className="column-menu-icon">⚑</span>
+						<span className="column-menu-label">Inferred Priority Column</span>
+					</div>
+					<div
+						className={`column-menu-item ${priorityEnhanced ? 'checked' : ''}`}
+						onClick={() => onTogglePriorityEnhanced?.(!priorityEnhanced)}
+						title="Color-coded chips: red for high, yellow for medium, blue for low"
+					>
+						<span className="column-menu-icon">
+							{priorityEnhanced ? '☑' : '☐'}
+						</span>
+						<span className="column-menu-label">Enhanced UI</span>
+						{priorityEnhanced && <span className="column-menu-check">✓</span>}
+					</div>
+				</>
+			)}
 		</div>,
 		document.body
 	);

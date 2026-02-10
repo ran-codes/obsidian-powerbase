@@ -5,6 +5,25 @@ import { TextEditor } from '../editors/TextEditor';
 import { ChipEditor } from '../editors/ChipEditor';
 import { DateEditor } from '../editors/DateEditor';
 
+/** Priority value → chip color mapping */
+const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
+	high:   { bg: '#e74c3c', text: '#ffffff' },
+	medium: { bg: '#f5d89a', text: '#1a1a1a' },
+	low:    { bg: '#a3d5f5', text: '#1a1a1a' },
+};
+const PRIORITY_DEFAULT = { bg: '#e0e0e0', text: '#1a1a1a' };
+
+/** Strip wikilink brackets and show display name or basename */
+function stripWikilink(v: string): string {
+	const m = v.match(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/);
+	if (!m) return v;
+	const path = m[1];
+	const alias = m[2];
+	if (alias) return alias;
+	const lastSlash = path.lastIndexOf('/');
+	return lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
+}
+
 /**
  * Editable cell renderer for non-relation, non-rollup columns.
  * Display mode: shows read-only value (text, number, checkbox, array).
@@ -45,10 +64,11 @@ export function EditableCell({
 
 	// Get column type early (needed for multitext detection)
 	const columnType = table.options.meta?.getColumnType?.(column.id);
-	const isMultitextColumn = columnType === 'list' || columnType === 'tags';
+	const isMultitextColumn = columnType === 'list' || columnType === 'tags' || columnType === 'priority';
 	const isTagColumn = columnType === 'tags' || column.id === 'note.tags' || column.id.endsWith('.tags');
 	const isDateColumn = columnType === 'date';
 	const isDatetimeColumn = columnType === 'datetime';
+	const isPriorityEnhanced = table.options.meta?.isColumnPriorityEnhanced?.(column.id) ?? false;
 
 	// Edit mode for date/datetime
 	if (editing && (isDateColumn || isDatetimeColumn)) {
@@ -176,21 +196,45 @@ export function EditableCell({
 				className="cell-chip-list"
 				onClick={() => setEditing(true)}
 			>
-				{currentValues.map((v, i) => (
-					<span key={i} className={chipClass}>
-						<span className="cell-chip-label">{v}</span>
-						<span
-							className="cell-chip-remove"
-							onClick={(e) => {
-								e.stopPropagation();
-								handleRemove(i);
-							}}
-							title="Remove"
-						>
-							×
+				{currentValues.map((v, i) => {
+					if (isPriorityEnhanced) {
+						const colors = PRIORITY_COLORS[v.toLowerCase()] ?? PRIORITY_DEFAULT;
+						return (
+							<span
+								key={i}
+								className="cell-chip cell-chip-priority"
+								style={{ backgroundColor: colors.bg }}
+							>
+								<span className="cell-chip-label" style={{ color: colors.text }}>{v}</span>
+								<span
+									className="cell-chip-remove"
+									onClick={(e) => {
+										e.stopPropagation();
+										handleRemove(i);
+									}}
+									title="Remove"
+								>
+									×
+								</span>
+							</span>
+						);
+					}
+					return (
+						<span key={i} className={chipClass}>
+							<span className="cell-chip-label">{stripWikilink(v)}</span>
+							<span
+								className="cell-chip-remove"
+								onClick={(e) => {
+									e.stopPropagation();
+									handleRemove(i);
+								}}
+								title="Remove"
+							>
+								×
+							</span>
 						</span>
-					</span>
-				))}
+					);
+				})}
 				{currentValues.length === 0 && (
 					<span className="cell-empty-placeholder">Click to add...</span>
 				)}

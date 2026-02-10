@@ -23,7 +23,7 @@ export interface WikiLink {
 }
 
 /** Column data type for icon display */
-export type ColumnType = 'file' | 'relation' | 'tags' | 'list' | 'checkbox' | 'number' | 'text' | 'date' | 'datetime' | 'rollup' | 'actions';
+export type ColumnType = 'file' | 'relation' | 'tags' | 'list' | 'checkbox' | 'number' | 'text' | 'date' | 'datetime' | 'rollup' | 'actions' | 'priority';
 
 /** Column metadata for the table */
 export interface ColumnMeta {
@@ -33,12 +33,18 @@ export interface ColumnMeta {
 	displayName: string;
 	/** Whether this column contains relation (wikilink list) values */
 	isRelation: boolean;
+	/** Whether enhanced relation UI is active (wikilink chips + picker) */
+	relationEnhanced?: boolean;
 	/** Whether this is a computed rollup column */
 	isRollup?: boolean;
 	/** Rollup configuration (present when isRollup is true) */
 	rollupConfig?: RollupConfig;
 	/** Folder path to filter relation picker options (auto-inferred from property name) */
 	relationFolderFilter?: string;
+	/** Whether this is an inferred priority column */
+	isPriority?: boolean;
+	/** Whether enhanced priority UI is active (colored chips) */
+	priorityEnhanced?: boolean;
 	/** Whether this is a quick actions column */
 	isQuickActions?: boolean;
 	/** Column data type for header icon */

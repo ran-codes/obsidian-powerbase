@@ -158,6 +158,22 @@
 	color: var(--tag-color, hsl(258, 60%, 65%));
 }
 
+/* Priority chip styling */
+.cell-chip-priority {
+	font-weight: var(--font-semibold);
+}
+
+.cell-chip-priority .cell-chip-remove {
+	color: inherit;
+	opacity: 0.6;
+}
+
+.cell-chip-priority .cell-chip-remove:hover {
+	opacity: 1;
+	background-color: rgba(0, 0, 0, 0.15);
+	color: inherit;
+}
+
 /* Empty placeholder for list cells */
 .cell-empty-placeholder {
 	color: var(--text-faint);

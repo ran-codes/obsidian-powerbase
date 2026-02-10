@@ -163,11 +163,24 @@ export class RelationalTableView extends BasesView {
 			const propIdStr = propId as string;
 			const isRelation = this.detectRelationColumn(propIdStr, rows, baseFolder);
 			const columnType = this.detectColumnType(propIdStr, rows, isRelation);
+			const isPriority = this.detectPriorityColumn(propIdStr);
+			const priorityEnhanced = isPriority
+				? (this.config.get(`priorityEnhanced_${propIdStr}`) ?? 'true') !== 'false'
+				: undefined;
+			const relationEnhanced = isRelation
+				? (this.config.get(`relationEnhanced_${propIdStr}`) ?? 'true') !== 'false'
+				: undefined;
+			const effectiveColumnType = (isPriority && priorityEnhanced)
+				? 'priority' as ColumnType
+				: columnType;
 			return {
 				propertyId: propIdStr,
 				displayName: config.getDisplayName(propId),
 				isRelation,
-				columnType,
+				relationEnhanced,
+				isPriority,
+				priorityEnhanced,
+				columnType: effectiveColumnType,
 				relationFolderFilter: isRelation
 					? this.inferRelationFolder(propIdStr, baseFolder)
 					: undefined,
@@ -276,6 +289,8 @@ export class RelationalTableView extends BasesView {
 						: undefined,
 					onHideColumn: this.handleHideColumn.bind(this),
 					onSortColumn: this.handleSortColumn.bind(this),
+					onTogglePriorityEnhanced: this.handleTogglePriorityEnhanced.bind(this),
+					onToggleRelationEnhanced: this.handleToggleRelationEnhanced.bind(this),
 				})
 			)
 		);
@@ -423,6 +438,30 @@ export class RelationalTableView extends BasesView {
 		}
 
 		return 'text'; // Default
+	}
+
+	/**
+	 * Detect if a column is a priority column by property name.
+	 */
+	private detectPriorityColumn(propId: string): boolean {
+		const name = this.extractPropertyName(propId).toLowerCase();
+		return name === 'priority';
+	}
+
+	/**
+	 * Toggle enhanced priority UI for a column and re-render.
+	 */
+	private handleTogglePriorityEnhanced(columnId: string, enabled: boolean): void {
+		(this.config as any).set?.(`priorityEnhanced_${columnId}`, enabled ? 'true' : 'false');
+		this.renderTable();
+	}
+
+	/**
+	 * Toggle enhanced relation UI for a column and re-render.
+	 */
+	private handleToggleRelationEnhanced(columnId: string, enabled: boolean): void {
+		(this.config as any).set?.(`relationEnhanced_${columnId}`, enabled ? 'true' : 'false');
+		this.renderTable();
 	}
 
 	/**
