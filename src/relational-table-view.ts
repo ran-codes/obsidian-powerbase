@@ -22,6 +22,7 @@ export class RelationalTableView extends BasesView {
 	private plugin: Plugin;
 	private reactRoot: Root | null = null;
 	private propertyTypes: Record<string, string> | null = null;
+	private renderTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(
 		controller: QueryController,
@@ -63,13 +64,20 @@ export class RelationalTableView extends BasesView {
 	}
 
 	onDataUpdated(): void {
-		// MUST be synchronous — the framework does not await this callback.
 		// Fire-and-forget property type loading; re-render when ready.
 		if (!this.propertyTypes) {
-			void this.loadPropertyTypes().then(() => this.renderTable());
+			void this.loadPropertyTypes().then(() => this.scheduleRender());
 		}
 		this.updateViewOptionsState();
-		this.renderTable();
+		this.scheduleRender();
+	}
+
+	private scheduleRender(): void {
+		if (this.renderTimer) return;
+		this.renderTimer = setTimeout(() => {
+			this.renderTimer = null;
+			this.renderTable();
+		}, 16);
 	}
 
 	/**
@@ -307,12 +315,12 @@ export class RelationalTableView extends BasesView {
 	 * See .claude/reference/v0.1/obsidian-value-api.md
 	 */
 	private unwrapValue(value: any): unknown {
-		if (value === null || value === undefined) return null;
+		if (value === null || value === undefined || value === 'null') return null;
 
 		// Obsidian Value objects have .data as the actual value
 		// Check for .data presence explicitly (null .data means empty value)
 		if (typeof value === 'object' && value !== null && 'data' in value) {
-			if (value.data === null || value.data === undefined) return null;
+			if (value.data === null || value.data === undefined || value.data === 'null') return null;
 			if (Array.isArray(value.data)) {
 				return value.data.map((v: any) => this.unwrapValue(v));
 			}
@@ -400,48 +408,72 @@ export class RelationalTableView extends BasesView {
 
 	/**
 	 * Detect the column data type for header icon display.
-	 * First checks Obsidian's property type registry, then falls back to data detection.
+	 * Uses three layers: registry → data detection → persisted cache.
+	 * Non-text types are persisted both in-memory and in the .base file
+	 * so they survive cell clears, view recreation, and plugin reloads.
 	 */
+	private columnTypeCache: Record<string, ColumnType> = {};
+
+	private persistColumnType(propId: string, type: ColumnType): void {
+		this.columnTypeCache[propId] = type;
+		const configKey = `colType_${propId}`;
+		if (this.config.get(configKey) !== type) {
+			(this.config as any).set?.(configKey, type);
+		}
+	}
+
 	private detectColumnType(propId: string, rows: TableRowData[], isRelation: boolean): ColumnType {
 		// Special columns
 		if (propId === 'file.name') return 'file';
 		if (isRelation) return 'relation';
 		if (propId === 'note.tags' || propId.endsWith('.tags')) return 'tags';
 
-		// Check Obsidian's property type registry
+		// Check Obsidian's property type registry (types.json + runtime metadataTypeManager)
 		const propertyName = this.extractPropertyName(propId);
-		const registeredType = this.propertyTypes?.[propertyName];
+		const registeredType = this.propertyTypes?.[propertyName]
+			?? (this.app as any).metadataTypeManager?.getAssignedType?.(propertyName);
 		if (registeredType) {
+			let mapped: ColumnType | null = null;
 			switch (registeredType) {
-				case 'multitext': return 'list';
-				case 'tags': return 'tags';
-				case 'checkbox': return 'checkbox';
-				case 'number': return 'number';
-				case 'date': return 'date';
-				case 'datetime': return 'datetime';
-				case 'text':
-				default:
-					// Fall through to data detection for text types
-					break;
+				case 'multitext': mapped = 'list'; break;
+				case 'tags': mapped = 'tags'; break;
+				case 'checkbox': mapped = 'checkbox'; break;
+				case 'number': mapped = 'number'; break;
+				case 'date': mapped = 'date'; break;
+				case 'datetime': mapped = 'datetime'; break;
+			}
+			if (mapped) {
+				this.persistColumnType(propId, mapped);
+				return mapped;
 			}
 		}
 
-		// Fall back to data-based detection
+		// Fall back to data-based detection (skip nulls, empty strings, string "null")
 		for (const row of rows.slice(0, 10)) {
 			const val = row[propId];
-			if (val === null || val === undefined) continue;
+			if (val === null || val === undefined || val === '' || val === 'null') continue;
 
-			if (typeof val === 'boolean') return 'checkbox';
-			if (typeof val === 'number') return 'number';
-			if (Array.isArray(val)) return 'list';
-			if (typeof val === 'string') {
-				if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) return 'datetime';
-				if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return 'date';
-				return 'text';
+			let detected: ColumnType = 'text';
+			if (typeof val === 'boolean') detected = 'checkbox';
+			else if (typeof val === 'number') detected = 'number';
+			else if (Array.isArray(val)) detected = 'list';
+			else if (typeof val === 'string') {
+				if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) detected = 'datetime';
+				else if (/^\d{4}-\d{2}-\d{2}$/.test(val)) detected = 'date';
 			}
+			if (detected !== 'text') this.persistColumnType(propId, detected);
+			return detected;
 		}
 
-		return 'text'; // Default
+		// All values empty — check in-memory cache first (fastest), then .base file
+		const cached = this.columnTypeCache[propId];
+		if (cached) return cached;
+		const persisted = this.config.get(`colType_${propId}`) as ColumnType | undefined;
+		if (persisted) {
+			this.columnTypeCache[propId] = persisted;
+			return persisted;
+		}
+		return 'text';
 	}
 
 	/**

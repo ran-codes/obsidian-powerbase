@@ -40,6 +40,7 @@ export function EditableCell({
 	table,
 }: CellContext<TableRowData, unknown>) {
 	const [editing, setEditing] = useState(false);
+	const [calendarOpen, setCalendarOpen] = useState(false);
 	const value = getValue();
 
 	const handleSave = useCallback(
@@ -79,6 +80,7 @@ export function EditableCell({
 				type={isDatetimeColumn ? 'datetime' : 'date'}
 				onSave={handleSave}
 				onCancel={handleCancel}
+				openCalendar={calendarOpen}
 			/>
 		);
 	}
@@ -98,18 +100,23 @@ export function EditableCell({
 
 	// Null/undefined/empty
 	if (value === null || value === undefined || value === 'null') {
-		// Date columns: single-click to open calendar
+		// Date columns: click opens editor, icon click opens calendar
 		if (isDateColumn || isDatetimeColumn) {
 			return (
 				<span
 					className="cell-date cell-date-empty"
-					onClick={() => setEditing(true)}
+					onClick={(e) => {
+						const onIcon = (e.target as HTMLElement).closest('.cell-date-icon') !== null;
+						setCalendarOpen(onIcon);
+						setEditing(true);
+					}}
 					onKeyDown={(e) => {
-						if (e.key === 'Enter') setEditing(true);
+						if (e.key === 'Enter') { setCalendarOpen(false); setEditing(true); }
 					}}
 					tabIndex={0}
 				>
 					<Calendar size={14} className="cell-date-icon" />
+					<span className="cell-date-placeholder">mm/dd/yyyy</span>
 				</span>
 			);
 		}
@@ -265,9 +272,13 @@ export function EditableCell({
 		return (
 			<span
 				className="cell-date"
-				onClick={() => setEditing(true)}
+				onClick={(e) => {
+					const onIcon = (e.target as HTMLElement).closest('.cell-date-icon') !== null;
+					setCalendarOpen(onIcon);
+					setEditing(true);
+				}}
 				onKeyDown={(e) => {
-					if (e.key === 'Enter') setEditing(true);
+					if (e.key === 'Enter') { setCalendarOpen(false); setEditing(true); }
 				}}
 				tabIndex={0}
 				title={value}
