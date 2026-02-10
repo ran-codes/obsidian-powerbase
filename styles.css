@@ -10,7 +10,7 @@
 .relational-table {
 	width: 100%;
 	border-collapse: collapse;
-	table-layout: auto;
+	table-layout: fixed;
 }
 
 /* Header */
@@ -40,6 +40,7 @@
 	border-bottom: 1px solid var(--background-modifier-border);
 	border-right: 1px solid var(--background-modifier-border);
 	vertical-align: middle;
+	overflow: hidden;
 }
 
 .relational-table td:last-child {
@@ -95,6 +96,45 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	max-width: 300px;
+	display: inline-block;
+}
+
+/* URL cells */
+.cell-url {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 100%;
+}
+.cell-url-link {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+	flex: 1 1 auto;
+	color: var(--link-color, var(--text-accent));
+	text-decoration: none;
+	cursor: pointer;
+	-webkit-user-drag: none;
+}
+.cell-url-link:hover {
+	text-decoration: underline;
+}
+.cell-url-icon {
+	flex-shrink: 0;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.cell-url-icon-link {
+	display: inline-block;
+}
+.cell-url-icon-edit {
+	display: none;
+}
+.cell-url:hover .cell-url-icon-link {
+	display: none;
+}
+.cell-url:hover .cell-url-icon-edit {
 	display: inline-block;
 }
 

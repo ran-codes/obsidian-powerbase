@@ -8,7 +8,7 @@ import {
 	Hash,
 	Sigma,
 	Zap,
-	Type,
+	AlignJustify,
 	Flag,
 	Calendar,
 	ChevronRight,
@@ -113,7 +113,7 @@ function getColumnTypeIcon(type?: ColumnType): ReactNode {
 		case 'priority': return <Flag {...props} />;
 		case 'date': return <Calendar {...props} />;
 		case 'datetime': return <Calendar {...props} />;
-		case 'text': return <Type {...props} />;
+		case 'text': return <AlignJustify {...props} />;
 		default: return null;
 	}
 }

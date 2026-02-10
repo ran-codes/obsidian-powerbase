@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, ExternalLink, Pencil } from 'lucide-react';
 import type { CellContext } from '@tanstack/react-table';
 import type { TableRowData } from '../../types';
 import { TextEditor } from '../editors/TextEditor';
@@ -289,6 +289,35 @@ export function EditableCell({
 		);
 	}
 
+	// URL text — clickable link + pencil icon on hover to edit
+	const strValue = String(value);
+	if (typeof value === 'string' && /^https?:\/\/.+/.test(strValue)) {
+		return (
+			<span
+				className="cell-text cell-url"
+				tabIndex={0}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter') setEditing(true);
+				}}
+			>
+				<a
+					href={strValue}
+					className="cell-url-link"
+					title={strValue}
+					draggable={false}
+					onClick={(e) => {
+						e.preventDefault();
+						window.open(strValue, '_blank');
+					}}
+				>
+					{strValue}
+				</a>
+				<ExternalLink size={14} className="cell-url-icon cell-url-icon-link" onClick={(e) => { e.stopPropagation(); window.open(strValue, '_blank'); }} />
+				<Pencil size={14} className="cell-url-icon cell-url-icon-edit" onClick={(e) => { e.stopPropagation(); setEditing(true); }} />
+			</span>
+		);
+	}
+
 	// Text/number — double-click to edit
 	return (
 		<span
@@ -299,7 +328,7 @@ export function EditableCell({
 			}}
 			tabIndex={0}
 		>
-			{String(value)}
+			{strValue}
 		</span>
 	);
 }
