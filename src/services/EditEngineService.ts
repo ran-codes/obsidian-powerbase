@@ -62,7 +62,7 @@ export class EditEngineService {
 				await this.persistFrontmatter(edit);
 			} catch (err) {
 				console.error(
-					`[Bases Power User] Failed to update ${edit.file.path}:${edit.propertyName}`,
+					`[Powerbase] Failed to update ${edit.file.path}:${edit.propertyName}`,
 					err
 				);
 			}

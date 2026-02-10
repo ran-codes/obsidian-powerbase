@@ -1,4 +1,4 @@
-# Bases Power User
+# Powerbase
 
 Obsidian community plugin that extends Bases with relation columns, rollups, and bidirectional sync. Registers a custom "Relational Table" view via the Bases Plugin API (v1.10.0+).
 
@@ -23,13 +23,13 @@ npm run build        # production build → main.js
 npm run dev          # watch mode for development
 ```
 
-Deploy to a vault: copy `main.js`, `manifest.json`, `styles.css`, and `plugin-docs/CLAUDE.md` to `<vault>/.obsidian/plugins/bases-power-user/`. Use `/local-deploy` skill for automated deployment.
+Deploy to a vault: copy `main.js`, `manifest.json`, `styles.css`, and `plugin-docs/CLAUDE.md` to `<vault>/.obsidian/plugins/powerbase/`. Use `/local-deploy` skill for automated deployment.
 
 ## Iteration Workflow
 
 After any code change, always:
 1. `npm run build`
-2. Copy `main.js`, `manifest.json`, `styles.css`, and `plugin-docs/CLAUDE.md` to `D:/GitHub/work/.obsidian/plugins/bases-power-user/`
+2. Copy `main.js`, `manifest.json`, `styles.css`, and `plugin-docs/CLAUDE.md` to `D:/GitHub/work/.obsidian/plugins/powerbase/`
 
 Do not wait for the user to call `/local-deploy` — build and deploy automatically after each change.
 

@@ -83,7 +83,7 @@ export function RelationEditor({
 					setOptions((prev) => [...prev, newOption]);
 				} catch (err) {
 					console.error(
-						'[Bases Power User] Failed to create note:',
+						'[Powerbase] Failed to create note:',
 						err
 					);
 				}

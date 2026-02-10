@@ -1,4 +1,4 @@
-# Migrating from Bases to Bases Power User
+# Migrating from Bases to Powerbase
 
 This guide helps you add relational database features to your existing Obsidian Bases setup. The plugin extends Bases with a custom "Relational Table" view — your existing `.base` files, filters, sorts, and formulas continue to work unchanged.
 
@@ -22,10 +22,10 @@ This guide helps you add relational database features to your existing Obsidian 
 Copy `main.js`, `manifest.json`, and `styles.css` into:
 
 ```
-<your-vault>/.obsidian/plugins/bases-power-user/
+<your-vault>/.obsidian/plugins/powerbase/
 ```
 
-Enable "Bases Power User" in Settings > Community Plugins.
+Enable "Powerbase" in Settings > Community Plugins.
 
 ## Step 2: Switch a Base to Relational Table View
 

@@ -1,4 +1,4 @@
-# Phase 1 MVP: Bases Power User — Relational Table View
+# Phase 1 MVP: Powerbase — Relational Table View
 
 ## Summary
 
@@ -87,7 +87,7 @@ D:\GitHub\obsidian-database-power-user\
 
 Create: `manifest.json`, `package.json`, `tsconfig.json`, `esbuild.config.mjs`, `versions.json`, `.gitignore`
 
-- `manifest.json`: id `"bases-power-user"`, minAppVersion `"1.10.0"`
+- `manifest.json`: id `"powerbase"`, minAppVersion `"1.10.0"`
 - `tsconfig.json`: `"jsx": "react-jsx"`, target ES6, module ESNext, include `**/*.tsx`
 - `esbuild.config.mjs`: entry `src/main.ts`, CJS output, externalize `obsidian`/`electron`/`@codemirror/*`/`@lezer/*`, dev watch mode + production minified
 - Run `npm install && npm run build` to verify zero errors
@@ -273,7 +273,7 @@ Create: `styles.css`
 ## Verification Checklist
 
 1. `npm run build` produces `main.js` with no errors
-2. Copy `main.js`, `manifest.json`, `styles.css` to test vault's `.obsidian/plugins/bases-power-user/`
+2. Copy `main.js`, `manifest.json`, `styles.css` to test vault's `.obsidian/plugins/powerbase/`
 3. Enable plugin in Obsidian settings
 4. Open a `.base` file → "Relational Table" appears in the view switcher
 5. Table renders columns from `config.getOrder()` and rows from query results

@@ -9,4 +9,4 @@ aliases:
 
 # Project Alpha
 
-A test project for validating the Bases Power User plugin.
+A test project for validating the Powerbase plugin.

@@ -31,7 +31,7 @@ export function QuickActionsCell({
 				setSuccessId(action.id);
 				setTimeout(() => setSuccessId(null), 800);
 			} catch (err) {
-				console.error('[Bases Power User] Quick action failed:', err);
+				console.error('[Powerbase] Quick action failed:', err);
 			} finally {
 				setExecutingId(null);
 			}

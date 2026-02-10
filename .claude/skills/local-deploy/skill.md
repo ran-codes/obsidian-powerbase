@@ -5,11 +5,11 @@ disable-model-invocation: true
 allowed-tools: Bash(npm*), Bash(node*), Bash(npx*), Bash(mkdir*), Bash(cp*), Read, Glob
 ---
 
-Deploy **bases-power-user** to the local Obsidian vault for testing. Do NOT build first — just copy the already-built files.
+Deploy **powerbase** to the local Obsidian vault for testing. Do NOT build first — just copy the already-built files.
 
 ## Target
 
-`D:/GitHub/work/.obsidian/plugins/bases-power-user/`
+`D:/GitHub/work/.obsidian/plugins/powerbase/`
 
 ## Steps
 

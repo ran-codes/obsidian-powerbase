@@ -1,7 +1,7 @@
 import { Plugin, TFile } from 'obsidian';
 import { RelationalTableView } from './relational-table-view';
 
-export default class BasesPowerUserPlugin extends Plugin {
+export default class PowerbasePlugin extends Plugin {
 	async onload() {
 		this.registerBasesView('relational-table', {
 			name: 'Relational Table',
@@ -29,7 +29,7 @@ export default class BasesPowerUserPlugin extends Plugin {
 			this.app.vault.on('delete', (file) => {
 				if (file instanceof TFile && file.extension === 'md') {
 					console.debug(
-						`[Bases Power User] File deleted: ${file.path}`
+						`[Powerbase] File deleted: ${file.path}`
 					);
 				}
 			})
@@ -51,7 +51,7 @@ export default class BasesPowerUserPlugin extends Plugin {
 		// If users report stale links, a manual "refresh" command can
 		// be added in a future update.
 		console.debug(
-			`[Bases Power User] File renamed: ${oldPath} → ${file.path}`
+			`[Powerbase] File renamed: ${oldPath} → ${file.path}`
 		);
 	}
 }

@@ -1,5 +1,5 @@
 {
-	"name": "obsidian-bases-power-user",
+	"name": "obsidian-powerbase",
 	"version": "0.1.0",
 	"description": "Adds relational table views to Obsidian Bases with relation columns and a note picker.",
 	"main": "main.js",

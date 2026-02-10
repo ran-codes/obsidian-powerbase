@@ -1,6 +1,6 @@
-# Bases Power User — Plugin Reference
+# Powerbase — Plugin Reference
 
-Obsidian plugin that extends **Bases** (v1.10.0+) with relation columns, rollup aggregations, bidirectional sync, quick actions, and group-by — all configured in `.base` files.
+Obsidian plugin that extends **Bases** (v1.10.0+) with relation columns, rollup aggregations, bidirectional sync, quick actions, group-by, date/datetime editing, and priority-enhanced UI — all configured in `.base` files.
 
 ## What This Plugin Adds (vs Vanilla Bases)
 
@@ -9,6 +9,11 @@ Obsidian plugin that extends **Bases** (v1.10.0+) with relation columns, rollup 
 - **Bidirectional sync** — editing a relation on note A automatically writes a back-link on note B
 - **Quick actions** — one-click buttons that set frontmatter properties (e.g. mark done, archive)
 - **Group-by** — rows grouped by any property, with collapsible headers
+- **Date/datetime columns** — calendar icon, MM/DD/YYYY display, custom calendar popup with month navigation, today/clear buttons
+- **Priority enhanced UI** — auto-detected priority columns rendered as color-coded chips (red=high, yellow=medium, blue=low), toggleable via column context menu
+- **List/tags chip editing** — inline chip editor with type-ahead suggestions dropdown, backspace to remove last chip
+- **Column context menu** — right-click any column header to hide, sort (A→Z / Z→A), view property type, toggle enhanced UI for priority/relation columns
+- **File context menu** — right-click file names for open in new tab/right/window, rename, copy path, show in explorer, delete
 - **Inline editing** — edit text, number, checkbox, date, and list properties directly in cells
 
 ## View Setup
@@ -156,6 +161,50 @@ One-click buttons that set frontmatter properties. Configured via a DSL string.
 | `FALSE` | Boolean `false` |
 | Numeric strings | Parsed as numbers |
 
+### Date / Datetime Columns
+
+Auto-detected from Obsidian's property type metadata. Dates display in `MM/DD/YYYY` format; datetimes display as `MM/DD/YYYY HH:MM`. Stored in frontmatter as ISO format (`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`).
+
+**Editing**: Click the cell to type a date (`mm/dd/yyyy`), or click the calendar icon to open a popup with:
+- Month navigation (chevron arrows)
+- Day grid with today highlight and selected-day highlight
+- "Today" button to set current date
+- "Clear" button to remove the value
+- Time picker (datetime columns only)
+
+No special configuration needed — the plugin reads Obsidian's type metadata to detect date/datetime properties.
+
+### Priority Enhanced UI
+
+Columns named `priority` (or containing priority-like values: high/medium/low) are auto-detected. When enhanced UI is toggled on (via column context menu), values render as color-coded chips:
+
+| Value    | Color  |
+|----------|--------|
+| `high`   | Red (`#e74c3c`) |
+| `medium` | Yellow (`#f5d89a`) |
+| `low`    | Blue (`#a3d5f5`) |
+| Other    | Gray (`#e0e0e0`) |
+
+Toggle via: right-click column header → **Enhanced UI** checkbox.
+
+### Column Context Menu
+
+Right-click any column header to access:
+- **Hide column** — removes column from view
+- **Sort A→Z / Z→A** — sort rows by this column (checkmark shows active sort)
+- **Clear sort** — remove active sort
+- **Property type** — shows inferred type (Text, Number, Relation, Tags, etc.)
+- **Enhanced UI** toggle — for priority and relation columns only
+
+### File Context Menu
+
+Right-click a file name cell to access:
+- Open in new tab / to the right / in new window
+- Rename
+- Copy path
+- Open in default app / Show in system explorer
+- Delete file (moves to trash)
+
 ### Group-By
 
 Group rows by any property. Set `groupBy` at the view level (not inside `options`):
@@ -174,8 +223,10 @@ Groups render as collapsible sections with headers showing the group value.
 ### Inline Editing
 
 Editable directly in cells:
-- **Text** and **number** properties — click to edit inline
+- **Text** and **number** properties — double-click or Enter to edit inline
 - **Checkbox** properties — click to toggle
+- **Date/datetime** properties — click to type `mm/dd/yyyy`, click calendar icon for popup
+- **List/tags** properties — click to open chip editor with inline cursor and type-ahead suggestions
 - **Relation columns** — click to open the relation picker (CreatableSelect with folder-filtered suggestions; type to create new notes)
 - **Rollup columns** — read-only (computed)
 - **Quick action buttons** — click to execute
@@ -232,4 +283,6 @@ All edits persist to frontmatter via a debounced write queue (250ms debounce, 25
 - **Quick action not appearing** — Check DSL syntax: actions separated by `;`, updates by `,`, key-value by `=`. Example: `Done:status=done,completed=TODAY`
 - **Group-by not working** — `groupBy` goes at the view level (sibling of `order`), not inside `options`. Use the full property ID: `note.status`.
 - **Changes not persisting** — The plugin uses a debounced write queue. Wait ~300ms after editing before closing the note. If using bidi sync, `processFrontMatter` handles atomic writes.
+- **Date column showing as text** — The plugin reads Obsidian's property type metadata. Ensure the property is registered as `date` or `datetime` in Obsidian's property settings (Settings → Properties).
+- **Priority colors not showing** — Right-click the column header and enable "Enhanced UI". Values must be `high`, `medium`, or `low` (case-insensitive).
 - **Plugin not loading** — Requires Bases plugin v1.10.0+ with the Plugin API enabled. Check Settings → Community Plugins → Bases.

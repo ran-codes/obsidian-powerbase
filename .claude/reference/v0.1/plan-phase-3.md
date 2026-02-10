@@ -1,4 +1,4 @@
-# Phase 3: Bases Power User — Bidirectional Relations + Polish
+# Phase 3: Powerbase — Bidirectional Relations + Polish
 
 ## Summary
 

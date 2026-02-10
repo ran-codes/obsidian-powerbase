@@ -1,4 +1,4 @@
-# Bases Power User
+# Powerbase
 
 Notion-style relations, rollups, and bidirectional sync for Obsidian Bases.
 
@@ -6,8 +6,8 @@ Notion-style relations, rollups, and bidirectional sync for Obsidian Bases.
 
 ## Install
 
-1. Copy `main.js`, `manifest.json`, `styles.css` into `<your-vault>/.obsidian/plugins/bases-power-user/`
-2. Settings > Community Plugins > Enable **Bases Power User**
+1. Copy `main.js`, `manifest.json`, `styles.css` into `<your-vault>/.obsidian/plugins/powerbase/`
+2. Settings > Community Plugins > Enable **Powerbase**
 3. Open any `.base` file > view switcher > **Relational Table**
 
 ---

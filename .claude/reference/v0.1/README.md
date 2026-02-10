@@ -1,6 +1,6 @@
 # v0.1 Reference Documentation
 
-Design documents for the initial release of Bases Power User. Read in order for full context, or jump to a specific phase.
+Design documents for the initial release of Powerbase. Read in order for full context, or jump to a specific phase.
 
 ## Reading Order
 

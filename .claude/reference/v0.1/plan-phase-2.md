@@ -1,4 +1,4 @@
-# Phase 2: Bases Power User — Rollup Columns
+# Phase 2: Powerbase — Rollup Columns
 
 ## Summary
 
