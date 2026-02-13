@@ -18,86 +18,91 @@ interface PriorityEditorProps {
 }
 
 /**
- * Single-select priority dropdown with 3 color-coded options.
- * Replaces ChipEditor for priority columns to enforce single selection
- * and provide a clean, focused editing experience.
+ * Single-select priority dropdown with 3 color-coded pill options.
+ * Notion-style floating card with white background and shadow.
  */
 export function PriorityEditor({
 	currentValue,
 	onSelect,
 	onClose,
 }: PriorityEditorProps) {
-	const [selectedIndex, setSelectedIndex] = useState(() => {
+	const [focusedIndex, setFocusedIndex] = useState(() => {
 		if (!currentValue) return 0;
 		const idx = PRIORITY_OPTIONS.indexOf(currentValue.toLowerCase() as any);
 		return idx >= 0 ? idx : 0;
 	});
-	const containerRef = useRef<HTMLDivElement>(null);
+	const anchorRef = useRef<HTMLDivElement>(null);
+	const dropdownRef = useRef<HTMLDivElement>(null);
 	const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
-	// Position the dropdown below the cell
+	// Position the dropdown below the anchor
 	useEffect(() => {
-		if (containerRef.current) {
-			const rect = containerRef.current.getBoundingClientRect();
+		if (anchorRef.current) {
+			const rect = anchorRef.current.getBoundingClientRect();
 			setDropdownPos({
-				top: rect.bottom + 2,
+				top: rect.bottom + 4,
 				left: rect.left,
-				width: Math.max(rect.width, 120),
+				width: Math.max(rect.width, 160),
 			});
 		}
 	}, []);
 
-	// Focus the container for keyboard events
+	// Close on click outside the dropdown
 	useEffect(() => {
-		containerRef.current?.focus();
-	}, []);
-
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		switch (e.key) {
-			case 'ArrowDown':
-				e.preventDefault();
-				setSelectedIndex(i => Math.min(i + 1, PRIORITY_OPTIONS.length - 1));
-				break;
-			case 'ArrowUp':
-				e.preventDefault();
-				setSelectedIndex(i => Math.max(i - 1, 0));
-				break;
-			case 'Enter':
-				e.preventDefault();
-				onSelect(PRIORITY_OPTIONS[selectedIndex]);
-				break;
-			case 'Escape':
-				e.preventDefault();
+		const handleMouseDown = (e: MouseEvent) => {
+			if (
+				dropdownRef.current &&
+				!dropdownRef.current.contains(e.target as Node) &&
+				anchorRef.current &&
+				!anchorRef.current.contains(e.target as Node)
+			) {
 				onClose();
-				break;
-		}
-	};
+			}
+		};
+		document.addEventListener('mousedown', handleMouseDown);
+		return () => document.removeEventListener('mousedown', handleMouseDown);
+	}, [onClose]);
 
-	const handleOptionClick = (value: string) => {
-		onSelect(value);
-	};
+	// Keyboard navigation
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			switch (e.key) {
+				case 'ArrowDown':
+					e.preventDefault();
+					setFocusedIndex(i => Math.min(i + 1, PRIORITY_OPTIONS.length - 1));
+					break;
+				case 'ArrowUp':
+					e.preventDefault();
+					setFocusedIndex(i => Math.max(i - 1, 0));
+					break;
+				case 'Enter':
+					e.preventDefault();
+					onSelect(PRIORITY_OPTIONS[focusedIndex]);
+					break;
+				case 'Escape':
+					e.preventDefault();
+					onClose();
+					break;
+			}
+		};
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [focusedIndex, onSelect, onClose]);
+
+	// Show current value chip in the cell + dropdown below
+	const currentColors = currentValue
+		? PRIORITY_COLORS[currentValue.toLowerCase()] ?? { bg: '#e0e0e0', text: '#1a1a1a' }
+		: null;
 
 	return (
 		<>
-			<div
-				ref={containerRef}
-				className="priority-editor"
-				tabIndex={0}
-				onKeyDown={handleKeyDown}
-				onBlur={() => {
-					// Delay to allow click on options
-					setTimeout(() => onClose(), 150);
-				}}
-			>
-				{currentValue ? (
+			<div ref={anchorRef} className="priority-editor-anchor">
+				{currentValue && currentColors ? (
 					<span
 						className="cell-chip cell-chip-priority"
-						style={{ backgroundColor: PRIORITY_COLORS[currentValue.toLowerCase()]?.bg ?? '#e0e0e0' }}
+						style={{ backgroundColor: currentColors.bg }}
 					>
-						<span
-							className="cell-chip-label"
-							style={{ color: PRIORITY_COLORS[currentValue.toLowerCase()]?.text ?? '#1a1a1a' }}
-						>
+						<span className="cell-chip-label" style={{ color: currentColors.text }}>
 							{currentValue}
 						</span>
 					</span>
@@ -108,6 +113,7 @@ export function PriorityEditor({
 
 			{createPortal(
 				<div
+					ref={dropdownRef}
 					className="priority-editor-dropdown"
 					style={{
 						position: 'fixed',
@@ -122,20 +128,24 @@ export function PriorityEditor({
 						return (
 							<div
 								key={option}
-								className={`priority-editor-option ${i === selectedIndex ? 'focused' : ''} ${isSelected ? 'current' : ''}`}
+								className={`priority-editor-option ${i === focusedIndex ? 'is-focused' : ''}`}
 								onMouseDown={(e) => {
-									e.preventDefault(); // Prevent blur
-									handleOptionClick(option);
+									e.preventDefault();
+									onSelect(option);
 								}}
-								onMouseEnter={() => setSelectedIndex(i)}
+								onMouseEnter={() => setFocusedIndex(i)}
 							>
 								<span
-									className="priority-editor-chip"
-									style={{ backgroundColor: colors.bg }}
+									className="priority-editor-pill"
+									style={{ backgroundColor: colors.bg, color: colors.text }}
 								>
-									<span style={{ color: colors.text }}>{option}</span>
+									{option}
 								</span>
-								{isSelected && <span className="priority-editor-check">&#10003;</span>}
+								{isSelected && (
+									<svg className="priority-editor-check" width="14" height="14" viewBox="0 0 16 16" fill="none">
+										<path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+									</svg>
+								)}
 							</div>
 						);
 					})}

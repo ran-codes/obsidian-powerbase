@@ -972,65 +972,61 @@ td.cell-focused {
 }
 
 /* Priority Editor - single-select dropdown */
-.priority-editor {
+/* Priority editor — anchor in cell that shows current value */
+.priority-editor-anchor {
 	display: flex;
 	align-items: center;
 	min-height: 24px;
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: -1px;
-	border-radius: 4px;
-	padding: 2px;
-	background: var(--background-primary);
 	cursor: pointer;
 }
 
-.priority-editor:focus {
-	outline: 2px solid var(--interactive-accent);
-}
-
+/* Dropdown card — Notion-style floating panel */
 .priority-editor-dropdown {
 	z-index: 1000;
-	min-width: 120px;
+	min-width: 160px;
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-	padding: 4px 0;
+	border-radius: 8px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+	padding: 4px;
+	overflow: hidden;
 }
 
+/* Each option row */
 .priority-editor-option {
 	display: flex;
 	align-items: center;
-	padding: 6px 10px;
+	padding: 5px 8px;
 	cursor: pointer;
-	font-size: var(--font-ui-small);
+	border-radius: 6px;
 	gap: 8px;
+	transition: background 0.1s ease;
 }
 
 .priority-editor-option:hover,
-.priority-editor-option.focused {
+.priority-editor-option.is-focused {
 	background: var(--background-modifier-hover);
 }
 
-.priority-editor-option.current {
-	font-weight: var(--font-semibold);
-}
-
-.priority-editor-chip {
+/* Color-coded pill inside each option */
+.priority-editor-pill {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 10px;
-	border-radius: 12px;
-	font-size: var(--font-smallest);
-	font-weight: var(--font-semibold);
+	justify-content: center;
+	padding: 2px 12px;
+	border-radius: 20px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
 	white-space: nowrap;
-	height: 20px;
-	line-height: 20px;
+	height: 22px;
+	line-height: 22px;
 	box-sizing: border-box;
+	text-transform: capitalize;
 }
 
+/* Checkmark for selected option */
 .priority-editor-check {
 	margin-left: auto;
 	color: var(--interactive-accent);
-	font-size: 12px;
+	flex-shrink: 0;
 }
