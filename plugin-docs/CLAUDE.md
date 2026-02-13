@@ -3,6 +3,8 @@
 
 Obsidian plugin that extends **Bases** (v1.10.0+) with relation columns, rollup aggregations, bidirectional sync, quick actions, group-by, date/datetime editing, and priority-enhanced UI — all configured in `.base` files.
 
+**GitHub**: https://github.com/ran-codes/obsidian-powerbase — the `main` branch is the source of truth for plugin behavior. If this doc doesn't cover what you need (edge cases, internal logic, undocumented behavior), examine the repository directly.
+
 ## What This Plugin Adds (vs Vanilla Bases)
 
 - **Relation columns** — auto-detected via folder matching, rendered as clickable wikilink chips with a folder-filtered picker

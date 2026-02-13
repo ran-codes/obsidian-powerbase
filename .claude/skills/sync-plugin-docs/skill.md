@@ -10,6 +10,10 @@ Regenerate `plugin-docs/CLAUDE.md` — the consumer-facing plugin reference depl
 
 The exported `plugin-docs/CLAUDE.md` is the agent memory for any vault consuming this plugin. Its purpose is to give agents enough context to **utilize and manipulate Powerbase effectively within an Obsidian project** — configuring `.base` files, setting up relations/rollups/bidi sync, editing views programmatically, and troubleshooting issues without trial and error.
 
+## GitHub Repository
+
+The plugin source code lives at **https://github.com/ran-codes/obsidian-powerbase**. The exported doc MUST include this repo URL and a note telling consumer agents that the `main` branch of this repository is the source of truth for plugin behavior. If agents need details beyond what the exported doc covers (e.g., edge cases, internal logic, undocumented behavior), they should examine the repository's `main` branch directly.
+
 ## Why this skill exists
 
 If the exported doc drifts from the source code, agents make wrong assumptions about config format, detection behavior, etc. (e.g., putting config inside `options:` instead of view-level flat keys). This skill prevents that drift by regenerating docs from the actual source code and agent-notes.
