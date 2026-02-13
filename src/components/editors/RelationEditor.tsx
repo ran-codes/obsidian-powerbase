@@ -3,6 +3,7 @@ import CreatableSelect from 'react-select/creatable';
 import type { MultiValue, ActionMeta } from 'react-select';
 import { ClickAwayListener } from '@mui/material';
 import { useApp } from '../AppContext';
+import { useMru } from '../MruContext';
 import { NoteSearchService } from '../../services/NoteSearchService';
 import { ParseService } from '../../services/ParseService';
 import type { WikiLink } from '../../types';
@@ -34,6 +35,7 @@ export function RelationEditor({
 	folderFilter,
 }: RelationEditorProps) {
 	const app = useApp();
+	const mru = useMru();
 
 	// Convert current links to react-select options
 	const [selected, setSelected] = useState<OptionType[]>(
@@ -48,13 +50,15 @@ export function RelationEditor({
 
 	useEffect(() => {
 		const allNotes = NoteSearchService.getAllNotes(app, folderFilter);
+		const scope = folderFilter ?? '__global__';
+		const { files } = NoteSearchService.sortWithMru(allNotes, mru.getRecent(scope));
 		setOptions(
-			allNotes.map((file) => ({
+			files.map((file) => ({
 				label: file.basename,
 				value: file.path.replace(/\.md$/, ''),
 			}))
 		);
-	}, [app, folderFilter]);
+	}, [app, folderFilter, mru]);
 
 	const handleChange = useCallback(
 		async (
@@ -89,9 +93,13 @@ export function RelationEditor({
 				}
 			} else {
 				setSelected([...(newValue as OptionType[])]);
+				if (actionMeta.action === 'select-option' && actionMeta.option) {
+					const scope = folderFilter ?? '__global__';
+					mru.recordSelection(scope, actionMeta.option.value);
+				}
 			}
 		},
-		[app]
+		[app, mru, folderFilter]
 	);
 
 	const handleClickAway = useCallback(() => {

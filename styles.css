@@ -313,6 +313,12 @@
 	background: var(--background-modifier-hover);
 }
 
+.chip-editor-divider {
+	height: 1px;
+	background: var(--background-modifier-border);
+	margin: 2px 0;
+}
+
 /* Legacy list editor (keep for compatibility) */
 .list-editor {
 	position: relative;

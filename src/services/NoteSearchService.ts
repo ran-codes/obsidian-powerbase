@@ -103,4 +103,41 @@ export class NoteSearchService {
 	static isTextReference(app: App, text: string, folderPath?: string): boolean {
 		return NoteSearchService.resolveTextReference(app, text, folderPath) !== null;
 	}
+
+	/**
+	 * Sort files with MRU items first (by recency), then the rest alphabetically.
+	 * Returns { mruCount, files } so callers can insert a visual divider.
+	 */
+	static sortWithMru(
+		files: TFile[],
+		recentPaths: string[]
+	): { mruCount: number; files: TFile[] } {
+		if (recentPaths.length === 0) return { mruCount: 0, files };
+
+		const mruIndex = new Map(recentPaths.map((p, i) => [p, i]));
+		const mruFiles: TFile[] = [];
+		const rest: TFile[] = [];
+
+		for (const f of files) {
+			const pathNoExt = f.path.replace(/\.md$/, '');
+			if (mruIndex.has(pathNoExt)) {
+				mruFiles.push(f);
+			} else if (mruIndex.has(f.path)) {
+				mruFiles.push(f);
+			} else {
+				rest.push(f);
+			}
+		}
+
+		// Sort MRU files by recency
+		mruFiles.sort((a, b) => {
+			const aPath = a.path.replace(/\.md$/, '');
+			const bPath = b.path.replace(/\.md$/, '');
+			const aIdx = mruIndex.get(aPath) ?? mruIndex.get(a.path) ?? Infinity;
+			const bIdx = mruIndex.get(bPath) ?? mruIndex.get(b.path) ?? Infinity;
+			return aIdx - bIdx;
+		});
+
+		return { mruCount: mruFiles.length, files: [...mruFiles, ...rest] };
+	}
 }

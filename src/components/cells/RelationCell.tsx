@@ -6,6 +6,7 @@ import type { TableRowData, WikiLink } from '../../types';
 import { ParseService } from '../../services/ParseService';
 import { NoteSearchService } from '../../services/NoteSearchService';
 import { useApp } from '../AppContext';
+import { useMru } from '../MruContext';
 import { FileContextMenu } from '../FileContextMenu';
 
 interface ContextMenuState {
@@ -173,16 +174,20 @@ function RelationChipEditor({
 	onChipContextMenu: (e: React.MouseEvent, link: WikiLink) => void;
 }) {
 	const app = useApp();
+	const mru = useMru();
 	const [inputValue, setInputValue] = useState('');
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
-	// Get all notes as suggestions
-	const allNotes = useMemo(() => {
-		return NoteSearchService.getAllNotes(app, folderFilter);
-	}, [app, folderFilter]);
+	// Get all notes as suggestions, MRU-sorted
+	const { allNotes, mruCount } = useMemo(() => {
+		const raw = NoteSearchService.getAllNotes(app, folderFilter);
+		const scope = folderFilter ?? '__global__';
+		const result = NoteSearchService.sortWithMru(raw, mru.getRecent(scope));
+		return { allNotes: result.files, mruCount: result.mruCount };
+	}, [app, folderFilter, mru]);
 
 	// Focus on mount
 	useEffect(() => {
@@ -201,14 +206,26 @@ function RelationChipEditor({
 		}
 	}, [links]);
 
-	// Filter suggestions
-	const suggestions = useMemo(() => {
+	// Filter suggestions, tracking MRU divider position
+	const { suggestions, mruDividerAfter } = useMemo(() => {
 		const currentPaths = new Set(links.map(l => l.path.toLowerCase()));
-		return allNotes
+		const filtered = allNotes
 			.filter(f => !currentPaths.has(f.path.replace(/\.md$/, '').toLowerCase()))
-			.filter(f => !inputValue || f.basename.toLowerCase().includes(inputValue.toLowerCase()))
-			.slice(0, 10);
-	}, [allNotes, links, inputValue]);
+			.filter(f => !inputValue || f.basename.toLowerCase().includes(inputValue.toLowerCase()));
+		// Count how many MRU items survive filtering
+		let mruVisible = 0;
+		for (let i = 0; i < Math.min(mruCount, filtered.length); i++) {
+			// MRU items are in the first mruCount positions of allNotes;
+			// after filtering, they keep their relative order but count may differ
+			const idx = allNotes.indexOf(filtered[i]);
+			if (idx < mruCount) mruVisible++;
+			else break;
+		}
+		return {
+			suggestions: filtered.slice(0, 10),
+			mruDividerAfter: mruVisible > 0 && mruVisible < filtered.slice(0, 10).length ? mruVisible : -1,
+		};
+	}, [allNotes, links, inputValue, mruCount]);
 
 	useEffect(() => {
 		setSelectedIndex(0);
@@ -219,7 +236,10 @@ function RelationChipEditor({
 			case 'Enter':
 				e.preventDefault();
 				if (suggestions.length > 0) {
-					onAdd(suggestions[selectedIndex].path.replace(/\.md$/, ''));
+					const selected = suggestions[selectedIndex];
+					const notePath = selected.path.replace(/\.md$/, '');
+					onAdd(notePath);
+					mru.recordSelection(folderFilter ?? '__global__', notePath);
 					setInputValue('');
 				}
 				break;
@@ -245,7 +265,9 @@ function RelationChipEditor({
 	};
 
 	const handleSuggestionClick = (file: TFile) => {
-		onAdd(file.path.replace(/\.md$/, ''));
+		const notePath = file.path.replace(/\.md$/, '');
+		onAdd(notePath);
+		mru.recordSelection(folderFilter ?? '__global__', notePath);
 		setInputValue('');
 		inputRef.current?.focus();
 	};
@@ -308,17 +330,21 @@ function RelationChipEditor({
 					}}
 				>
 					{suggestions.map((file, i) => (
-						<div
-							key={file.path}
-							className={`chip-editor-option ${i === selectedIndex ? 'selected' : ''}`}
-							onMouseDown={(e) => {
-								e.preventDefault();
-								handleSuggestionClick(file);
-							}}
-							onMouseEnter={() => setSelectedIndex(i)}
-						>
-							{file.basename}
-						</div>
+						<React.Fragment key={file.path}>
+							{i === mruDividerAfter && (
+								<div className="chip-editor-divider" />
+							)}
+							<div
+								className={`chip-editor-option ${i === selectedIndex ? 'selected' : ''}`}
+								onMouseDown={(e) => {
+									e.preventDefault();
+									handleSuggestionClick(file);
+								}}
+								onMouseEnter={() => setSelectedIndex(i)}
+							>
+								{file.basename}
+							</div>
+						</React.Fragment>
 					))}
 				</div>,
 				document.body

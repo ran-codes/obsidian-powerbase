@@ -1,6 +1,7 @@
 import { BasesView, BasesPropertyId, BasesEntry, BasesQueryResult, QueryController, Plugin, TFile } from 'obsidian';
 import type { Root } from 'react-dom/client';
 import type { TableRowData, ColumnMeta, SortConfig, RollupConfig, AggregationType, GroupData, GroupInfo, QuickActionConfig, ColumnType } from './types';
+import type { MruService } from './services/MruService';
 
 /**
  * Module-level state for property filtering in view options.
@@ -22,6 +23,7 @@ export class RelationalTableView extends BasesView {
 	type = 'relational-table';
 	private viewContainerEl: HTMLElement;
 	private plugin: Plugin;
+	private mruService: MruService;
 	private reactRoot: Root | null = null;
 	private propertyTypes: Record<string, string> | null = null;
 	private renderTimer: ReturnType<typeof setTimeout> | null = null;
@@ -29,11 +31,13 @@ export class RelationalTableView extends BasesView {
 	constructor(
 		controller: QueryController,
 		containerEl: HTMLElement,
-		plugin: Plugin
+		plugin: Plugin,
+		mruService: MruService
 	) {
 		super(controller);
 		this.viewContainerEl = containerEl.createDiv({ cls: 'relational-table-container' });
 		this.plugin = plugin;
+		this.mruService = mruService;
 	}
 
 	onload(): void {
@@ -286,13 +290,22 @@ export class RelationalTableView extends BasesView {
 		// Render
 		const React = require('react');
 		const { AppContext } = require('./components/AppContext');
+		const { MruContext } = require('./components/MruContext');
 		const { RelationalTable } = require('./components/RelationalTable');
+
+		const mruApi = {
+			getRecent: (scope: string) => this.mruService.getRecent(scope),
+			recordSelection: (scope: string, notePath: string) => this.mruService.recordSelection(scope, notePath),
+		};
 
 		this.reactRoot!.render(
 			React.createElement(
 				AppContext.Provider,
 				{ value: this.app },
-				React.createElement(RelationalTable, {
+				React.createElement(
+					MruContext.Provider,
+					{ value: mruApi },
+					React.createElement(RelationalTable, {
 					rows,
 					columns,
 					sortConfig,
@@ -309,7 +322,7 @@ export class RelationalTableView extends BasesView {
 					onSortColumn: this.handleSortColumn.bind(this),
 					onTogglePriorityEnhanced: this.handleTogglePriorityEnhanced.bind(this),
 					onToggleRelationEnhanced: this.handleToggleRelationEnhanced.bind(this),
-				})
+				}))
 			)
 		);
 	}

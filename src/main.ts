@@ -1,13 +1,19 @@
 import { Plugin, TFile } from 'obsidian';
 import { RelationalTableView } from './relational-table-view';
+import { MruService } from './services/MruService';
 
 export default class PowerbasePlugin extends Plugin {
+	mruService!: MruService;
+
 	async onload() {
+		this.mruService = new MruService(this);
+		await this.mruService.load();
+
 		this.registerBasesView('relational-table', {
 			name: 'Powerbase',
 			icon: 'database',
 			factory: (controller: any, containerEl: HTMLElement) =>
-				new RelationalTableView(controller, containerEl, this),
+				new RelationalTableView(controller, containerEl, this, this.mruService),
 			options: () => RelationalTableView.getViewOptions(),
 		});
 
