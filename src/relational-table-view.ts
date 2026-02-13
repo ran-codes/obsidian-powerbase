@@ -629,16 +629,17 @@ export class RelationalTableView extends BasesView {
 	 * Used for both folder filtering and as a relation detection signal.
 	 */
 	private matchRelationSubfolder(propId: string, baseFolder?: string): string | undefined {
-		if (!baseFolder) return undefined;
+		if (baseFolder == null) return undefined;
 
 		const propName = this.extractPropertyName(propId).toLowerCase();
+		const prefix = baseFolder ? `${baseFolder}/` : '';
 		const candidates = [
-			`${baseFolder}/${propName}`,
-			`${baseFolder}/${propName}s`,
+			`${prefix}${propName}`,
+			`${prefix}${propName}s`,
 		];
 		// Also try without trailing 's' if propName already ends with 's'
 		if (propName.endsWith('s') && propName.length > 1) {
-			candidates.push(`${baseFolder}/${propName.slice(0, -1)}`);
+			candidates.push(`${prefix}${propName.slice(0, -1)}`);
 		}
 
 		for (const candidate of candidates) {
@@ -670,13 +671,13 @@ export class RelationalTableView extends BasesView {
 			while (!folders[i].startsWith(common)) {
 				const lastSlash = common.lastIndexOf('/');
 				common = lastSlash >= 0 ? common.substring(0, lastSlash) : '';
-				if (!common) return undefined;
+				if (!common) return '';  // vault root
 			}
 		}
 
 		// Go one level up to include sibling folders
 		const parentSlash = common.lastIndexOf('/');
-		return parentSlash >= 0 ? common.substring(0, parentSlash) : common || undefined;
+		return parentSlash >= 0 ? common.substring(0, parentSlash) : '';
 	}
 
 	/**
