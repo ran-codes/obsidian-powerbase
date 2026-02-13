@@ -4,8 +4,8 @@ import { RelationalTableView } from './relational-table-view';
 export default class PowerbasePlugin extends Plugin {
 	async onload() {
 		this.registerBasesView('relational-table', {
-			name: 'Relational Table',
-			icon: 'table-2',
+			name: 'Powerbase',
+			icon: 'database',
 			factory: (controller: any, containerEl: HTMLElement) =>
 				new RelationalTableView(controller, containerEl, this),
 			options: () => RelationalTableView.getViewOptions(),
