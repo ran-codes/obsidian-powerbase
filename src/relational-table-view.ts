@@ -14,6 +14,8 @@ const viewOptionsState = {
 	currentViewColumns: [] as string[],
 	/** Columns detected as relations (wikilink arrays, file references, etc.) */
 	detectedRelationColumns: [] as string[],
+	/** Relation details: property ID → matched folder path */
+	relationDetails: {} as Record<string, string>,
 };
 
 export class RelationalTableView extends BasesView {
@@ -107,6 +109,14 @@ export class RelationalTableView extends BasesView {
 		viewOptionsState.detectedRelationColumns = orderedProperties
 			.map(p => String(p))
 			.filter(propId => this.detectRelationColumn(propId, rows, baseFolder));
+
+		// Store relation details (column → matched folder)
+		const details: Record<string, string> = {};
+		for (const propId of viewOptionsState.detectedRelationColumns) {
+			const folder = this.matchRelationSubfolder(propId, baseFolder);
+			if (folder) details[propId] = folder;
+		}
+		viewOptionsState.relationDetails = details;
 	}
 
 	private renderTable(): void {
@@ -805,48 +815,74 @@ export class RelationalTableView extends BasesView {
 			],
 		});
 
+		// Build relation info as collapsible group with single-option dropdowns
+		const relationEntries = Object.entries(viewOptionsState.relationDetails);
+		const relationItems: any[] = [];
+		relationEntries.forEach(([propId, folder], i) => {
+			const colName = propId.replace('note.', '');
+			const num = i + 1;
+			relationItems.push({
+				type: 'dropdown' as const,
+				key: `_relInfo_${propId}_col`,
+				displayName: `Relation ${num} · Column`,
+				default: colName,
+				options: { [colName]: colName },
+			});
+			relationItems.push({
+				type: 'dropdown' as const,
+				key: `_relInfo_${propId}_folder`,
+				displayName: `Relation ${num} · Folder`,
+				default: `./${folder}`,
+				options: { [`./${folder}`]: `./${folder}` },
+			});
+		});
+
+		if (relationEntries.length === 0) {
+			relationItems.push({
+				type: 'dropdown' as const,
+				key: '_relInfo_none',
+				displayName: 'None detected',
+				default: '_none',
+				options: { '_none': 'No matching subfolders' },
+			});
+		}
+
 		return [
-			// Master settings (always visible)
+			// Collapsible relations info
 			{
-				type: 'dropdown',
-				key: 'relationDetection',
-				displayName: 'Relation Detection',
-				default: 'auto',
-				options: {
-					'auto': 'Auto-detect (list of wikilinks)',
-					'manual': 'Select property',
-				},
+				type: 'group' as const,
+				displayName: `Relations (${relationEntries.length})`,
+				items: relationItems,
 			},
 			{
-				type: 'dropdown',
-				key: 'rollupCount',
-				displayName: 'Number of Rollups',
-				default: '0',
-				options: {
-					'0': 'None',
-					'1': '1',
-					'2': '2',
-					'3': '3',
-				},
-			},
-			{
-				type: 'dropdown',
-				key: 'bidiCount',
-				displayName: 'Number of Bidi Syncs',
-				default: '0',
-				options: {
-					'0': 'None',
-					'1': '1',
-					'2': '2',
-					'3': '3',
-				},
-			},
-			{
-				type: 'text',
-				key: 'quickActions',
-				displayName: 'Quick Actions',
-				placeholder: 'Done:status=done,completed=TODAY;Archive:archived=TRUE',
-				default: '',
+				type: 'group' as const,
+				displayName: 'Advanced',
+				items: [
+					{
+						type: 'dropdown',
+						key: 'rollupCount',
+						displayName: 'Number of Rollups',
+						default: '0',
+						options: {
+							'0': 'None',
+							'1': '1',
+							'2': '2',
+							'3': '3',
+						},
+					},
+					{
+						type: 'dropdown',
+						key: 'bidiCount',
+						displayName: 'Number of Bidi Syncs',
+						default: '0',
+						options: {
+							'0': 'None',
+							'1': '1',
+							'2': '2',
+							'3': '3',
+						},
+					},
+				],
 			},
 			// Drill-down groups (collapsible, conditional)
 			rollupGroup(1),
