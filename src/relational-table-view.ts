@@ -342,63 +342,14 @@ export class RelationalTableView extends BasesView {
 	}
 
 	/**
-	 * Detect if a column contains relation values.
-	 * Checks four patterns:
-	 * 1a. Wikilink list: array where elements match [[...]]
-	 * 1b. Path list: array where elements resolve to vault files (handles
-	 *     LinkValue.data returning paths without brackets)
-	 * 2.  Text reference: scalar string matching a vault file basename/alias
-	 * 3.  Folder match: property name matches a subfolder (e.g. "project" → "projects/").
-	 *     Catches columns that are currently empty but structurally relational.
-	 * Scans first 10 rows for patterns 1–2, then falls back to pattern 3.
+	 * Detect if a column is a relation column.
+	 * Uses folder matching only: property name must match a subfolder
+	 * (e.g. "project" → "projects/" exists). This is the most conservative
+	 * detection to avoid false positives from text values matching filenames.
 	 */
 	private detectRelationColumn(propId: string, rows: TableRowData[], baseFolder?: string): boolean {
 		if (!propId.startsWith('note.')) return false;
 
-		const { WIKILINK_REGEX } = require('./services/ParseService');
-		const { NoteSearchService } = require('./services/NoteSearchService');
-		const sampled = rows.slice(0, 10);
-
-		// Pattern 1: array values (wikilinks or file paths)
-		for (const row of sampled) {
-			const val = row[propId];
-			if (!Array.isArray(val) || val.length === 0) continue;
-			if (!val.every((item: any) => typeof item === 'string')) continue;
-
-			// 1a: all items are wikilinks
-			if (val.every((item: string) => WIKILINK_REGEX.test(item))) {
-				return true;
-			}
-
-			// 1b: all items resolve to vault files within baseFolder (covers LinkValue.data
-			//     returning bare paths like "Project Alpha" instead of "[[Project Alpha]]")
-			if (val.every((item: string) =>
-				NoteSearchService.isTextReference(this.app, item, baseFolder)
-			)) {
-				return true;
-			}
-		}
-
-		// Pattern 2: scalar text references (e.g. project: "My Project")
-		// Only matches files within the baseFolder to avoid false positives
-		let textRefHits = 0;
-		let textRefSamples = 0;
-		for (const row of sampled) {
-			const val = row[propId];
-			if (val === null || val === undefined || val === '') continue;
-			if (typeof val !== 'string') continue;
-			if (WIKILINK_REGEX.test(val)) continue;
-			textRefSamples++;
-			if (NoteSearchService.isTextReference(this.app, val, baseFolder)) {
-				textRefHits++;
-			}
-		}
-		if (textRefSamples >= 2 && textRefHits / textRefSamples > 0.5) {
-			return true;
-		}
-
-		// Pattern 3: property name matches a subfolder (e.g. "project" → "projects/")
-		// Catches columns that are currently empty but structurally relational.
 		if (this.matchRelationSubfolder(propId, baseFolder)) {
 			return true;
 		}
