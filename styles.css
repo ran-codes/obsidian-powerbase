@@ -970,3 +970,63 @@ td.cell-focused {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
 }
+
+/* Priority Editor - single-select dropdown */
+/* Priority editor — anchor in cell that shows current value */
+.priority-editor-anchor {
+	display: flex;
+	align-items: center;
+	min-height: 24px;
+	cursor: pointer;
+}
+
+/* Dropdown card — Notion-style floating panel */
+.priority-editor-dropdown {
+	z-index: 1000;
+	min-width: 160px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+	padding: 4px;
+	overflow: hidden;
+}
+
+/* Each option row */
+.priority-editor-option {
+	display: flex;
+	align-items: center;
+	padding: 5px 8px;
+	cursor: pointer;
+	border-radius: 6px;
+	gap: 8px;
+	transition: background 0.1s ease;
+}
+
+.priority-editor-option:hover,
+.priority-editor-option.is-focused {
+	background: var(--background-modifier-hover);
+}
+
+/* Color-coded pill inside each option */
+.priority-editor-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px 12px;
+	border-radius: 20px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	white-space: nowrap;
+	height: 22px;
+	line-height: 22px;
+	box-sizing: border-box;
+	text-transform: capitalize;
+}
+
+/* Checkmark for selected option */
+.priority-editor-check {
+	margin-left: auto;
+	color: var(--interactive-accent);
+	flex-shrink: 0;
+}

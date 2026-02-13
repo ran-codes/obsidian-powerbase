@@ -5,6 +5,7 @@ import type { TableRowData } from '../../types';
 import { TextEditor } from '../editors/TextEditor';
 import { ChipEditor } from '../editors/ChipEditor';
 import { DateEditor } from '../editors/DateEditor';
+import { PriorityEditor } from '../editors/PriorityEditor';
 
 /** Priority value → chip color mapping */
 const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -66,7 +67,8 @@ export function EditableCell({
 
 	// Get column type early (needed for multitext detection)
 	const columnType = table.options.meta?.getColumnType?.(column.id);
-	const isMultitextColumn = columnType === 'list' || columnType === 'tags' || columnType === 'priority';
+	const isPriorityColumn = columnType === 'priority';
+	const isMultitextColumn = columnType === 'list' || columnType === 'tags';
 	const isTagColumn = columnType === 'tags' || column.id === 'note.tags' || column.id.endsWith('.tags');
 	const isDateColumn = columnType === 'date';
 	const isDatetimeColumn = columnType === 'datetime';
@@ -85,8 +87,8 @@ export function EditableCell({
 		);
 	}
 
-	// Edit mode for text/number (but NOT multitext columns - those use ChipEditor)
-	if (editing && typeof value !== 'boolean' && !Array.isArray(value) && !isMultitextColumn) {
+	// Edit mode for text/number (but NOT multitext or priority columns)
+	if (editing && typeof value !== 'boolean' && !Array.isArray(value) && !isMultitextColumn && !isPriorityColumn) {
 		const editorType = typeof value === 'number' ? 'number' : 'text';
 		return (
 			<TextEditor
@@ -118,6 +120,28 @@ export function EditableCell({
 					<Calendar size={14} className="cell-date-icon" />
 					<span className="cell-date-placeholder">mm/dd/yyyy</span>
 				</span>
+			);
+		}
+
+		// Priority column: single-select dropdown with 3 options
+		if (isPriorityColumn) {
+			if (editing) {
+				return (
+					<PriorityEditor
+						currentValue={null}
+						onSelect={(selected) => {
+							setEditing(false);
+							table.options.meta?.updateCell?.(row.index, column.id, selected);
+						}}
+						onClose={() => setEditing(false)}
+					/>
+				);
+			}
+
+			return (
+				<div className="cell-chip-list" onClick={() => setEditing(true)}>
+					<span className="cell-empty-placeholder">Click to set...</span>
+				</div>
 			);
 		}
 
@@ -175,6 +199,77 @@ export function EditableCell({
 					);
 				}}
 			/>
+		);
+	}
+
+	// Priority column — single-select with color-coded chip display
+	if (isPriorityColumn) {
+		// Normalize: extract the single priority value from string or array
+		const priorityValue: string | null = Array.isArray(value)
+			? (value.find((v: any) => typeof v === 'string' && v) ?? null)
+			: (typeof value === 'string' ? value : null);
+
+		if (editing) {
+			return (
+				<PriorityEditor
+					currentValue={priorityValue}
+					onSelect={(selected) => {
+						setEditing(false);
+						table.options.meta?.updateCell?.(row.index, column.id, selected);
+					}}
+					onClose={() => setEditing(false)}
+				/>
+			);
+		}
+
+		// Display mode: show color-coded chip
+		if (priorityValue) {
+			if (isPriorityEnhanced) {
+				const colors = PRIORITY_COLORS[priorityValue.toLowerCase()] ?? PRIORITY_DEFAULT;
+				return (
+					<div className="cell-chip-list" onClick={() => setEditing(true)}>
+						<span
+							className="cell-chip cell-chip-priority"
+							style={{ backgroundColor: colors.bg }}
+						>
+							<span className="cell-chip-label" style={{ color: colors.text }}>{priorityValue}</span>
+							<span
+								className="cell-chip-remove"
+								onClick={(e) => {
+									e.stopPropagation();
+									table.options.meta?.updateCell?.(row.index, column.id, null);
+								}}
+								title="Remove"
+							>
+								×
+							</span>
+						</span>
+					</div>
+				);
+			}
+			return (
+				<div className="cell-chip-list" onClick={() => setEditing(true)}>
+					<span className="cell-chip">
+						<span className="cell-chip-label">{priorityValue}</span>
+						<span
+							className="cell-chip-remove"
+							onClick={(e) => {
+								e.stopPropagation();
+								table.options.meta?.updateCell?.(row.index, column.id, null);
+							}}
+							title="Remove"
+						>
+							×
+						</span>
+					</span>
+				</div>
+			);
+		}
+
+		return (
+			<div className="cell-chip-list" onClick={() => setEditing(true)}>
+				<span className="cell-empty-placeholder">Click to set...</span>
+			</div>
 		);
 	}
 
