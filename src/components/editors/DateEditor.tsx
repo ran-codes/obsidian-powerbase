@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DateEditorProps {
@@ -64,6 +65,7 @@ export function DateEditor({ value, type, onSave, onCancel, openCalendar }: Date
 
 	const [textValue, setTextValue] = useState(() => formatForInput(value));
 	const [showCalendar, setShowCalendar] = useState(openCalendar ?? false);
+	const [calendarPos, setCalendarPos] = useState({ top: 0, left: 0 });
 	const [viewYear, setViewYear] = useState(parsed.year);
 	const [viewMonth, setViewMonth] = useState(parsed.month);
 	const [selectedDay, setSelectedDay] = useState(parsed.day);
@@ -80,6 +82,14 @@ export function DateEditor({ value, type, onSave, onCancel, openCalendar }: Date
 		inputRef.current?.focus();
 		inputRef.current?.select();
 	}, []);
+
+	// Position calendar popup via portal
+	useEffect(() => {
+		if (showCalendar && containerRef.current) {
+			const rect = containerRef.current.getBoundingClientRect();
+			setCalendarPos({ top: rect.bottom + 4, left: rect.left });
+		}
+	}, [showCalendar]);
 
 	const buildValue = useCallback((y: number, m: number, d: number, t: string): string => {
 		const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -190,8 +200,12 @@ export function DateEditor({ value, type, onSave, onCancel, openCalendar }: Date
 					onBlur={handleTextBlur}
 				/>
 			</span>
-			{showCalendar && (
-				<div className="calendar-popup calendar-popup-dropdown" onMouseDown={(e) => e.preventDefault()}>
+			{showCalendar && createPortal(
+				<div
+					className="calendar-popup"
+					style={{ position: 'fixed', top: calendarPos.top, left: calendarPos.left, zIndex: 9999 }}
+					onMouseDown={(e) => e.preventDefault()}
+				>
 					<div className="calendar-header">
 						<button className="calendar-nav" onClick={handlePrevMonth} type="button">
 							<ChevronLeft size={16} />
@@ -236,7 +250,8 @@ export function DateEditor({ value, type, onSave, onCancel, openCalendar }: Date
 						<button className="calendar-footer-btn" onClick={handleClear} type="button">Clear</button>
 						<button className="calendar-footer-btn" onClick={handleToday} type="button">Today</button>
 					</div>
-				</div>
+				</div>,
+				document.body
 			)}
 		</div>
 	);
