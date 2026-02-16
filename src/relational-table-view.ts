@@ -399,7 +399,15 @@ export class RelationalTableView extends BasesView {
 	private detectColumnType(propId: string, rows: TableRowData[], isRelation: boolean): ColumnType {
 		// Special columns
 		if (propId === 'file.name') return 'file';
-		if (isRelation) return 'relation';
+		if (isRelation) {
+			// Clean up any stale persisted type (e.g. 'list' from failed detection)
+			const staleKey = `colType_${propId}`;
+			if (this.config.get(staleKey)) {
+				(this.config as any).set?.(staleKey, undefined);
+			}
+			delete this.columnTypeCache[propId];
+			return 'relation';
+		}
 		if (propId === 'note.tags' || propId.endsWith('.tags')) return 'tags';
 
 		// Check Obsidian's property type registry (types.json + runtime metadataTypeManager)
@@ -606,21 +614,26 @@ export class RelationalTableView extends BasesView {
 		if (baseFolder == null) return undefined;
 
 		const propName = this.extractPropertyName(propId).toLowerCase();
-		const prefix = baseFolder ? `${baseFolder}/` : '';
-		const candidates = [
-			`${prefix}${propName}`,
-			`${prefix}${propName}s`,
-		];
-		// Also try without trailing 's' if propName already ends with 's'
+		const nameCandidates = [propName, `${propName}s`];
 		if (propName.endsWith('s') && propName.length > 1) {
-			candidates.push(`${prefix}${propName.slice(0, -1)}`);
+			nameCandidates.push(propName.slice(0, -1));
 		}
 
-		for (const candidate of candidates) {
-			const folder = this.app.vault.getAbstractFileByPath(candidate);
-			if (folder && 'children' in folder) {
-				return candidate;
+		// Walk up from baseFolder to vault root, checking each level
+		let folder: string | undefined = baseFolder;
+		while (folder !== undefined) {
+			const prefix = folder ? `${folder}/` : '';
+			for (const name of nameCandidates) {
+				const candidate = `${prefix}${name}`;
+				const file = this.app.vault.getAbstractFileByPath(candidate);
+				if (file && 'children' in file) {
+					return candidate;
+				}
 			}
+			// Move up one level; stop after checking vault root (empty string)
+			if (folder === '') break;
+			const lastSlash = folder.lastIndexOf('/');
+			folder = lastSlash >= 0 ? folder.substring(0, lastSlash) : '';
 		}
 
 		return undefined;
