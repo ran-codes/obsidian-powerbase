@@ -429,7 +429,7 @@ export function RelationalTable({
 										key={header.id}
 										style={{ width: header.getSize() }}
 										onContextMenu={(e) => {
-											if (col && !col.isQuickActions && !col.isRollup) {
+											if (col && !col.isQuickActions) {
 												handleColumnContextMenu(e, header.id, col.displayName, col.columnType, col.isPriority, col.priorityEnhanced, col.isRelation, col.relationEnhanced);
 											}
 										}}

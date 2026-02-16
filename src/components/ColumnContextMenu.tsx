@@ -101,6 +101,8 @@ export function ColumnContextMenu({
 		}
 	}, [x, y]);
 
+	const isRollup = columnType === 'rollup';
+
 	// Use portal to render to document.body for correct fixed positioning
 	return createPortal(
 		<div
@@ -108,63 +110,74 @@ export function ColumnContextMenu({
 			className="column-context-menu"
 			style={{ left: x, top: y }}
 		>
-			<div
-				className="column-menu-item"
-				onClick={() => {
-					onHideColumn();
-					onClose();
-				}}
-			>
-				<span className="column-menu-icon">👁</span>
-				<span className="column-menu-label">Hide column</span>
-			</div>
+			{!isRollup && (
+				<>
+					<div
+						className="column-menu-item"
+						onClick={() => {
+							onHideColumn();
+							onClose();
+						}}
+					>
+						<span className="column-menu-icon">👁</span>
+						<span className="column-menu-label">Hide column</span>
+					</div>
 
-			<div className="column-menu-separator" />
+					<div className="column-menu-separator" />
 
-			<div
-				className={`column-menu-item ${currentSort === 'ASC' ? 'checked' : ''}`}
-				onClick={() => {
-					onSortAsc();
-					onClose();
-				}}
-			>
-				<span className="column-menu-icon">↑</span>
-				<span className="column-menu-label">Sort A → Z</span>
-				{currentSort === 'ASC' && <span className="column-menu-check">✓</span>}
-			</div>
+					<div
+						className={`column-menu-item ${currentSort === 'ASC' ? 'checked' : ''}`}
+						onClick={() => {
+							onSortAsc();
+							onClose();
+						}}
+					>
+						<span className="column-menu-icon">↑</span>
+						<span className="column-menu-label">Sort A → Z</span>
+						{currentSort === 'ASC' && <span className="column-menu-check">✓</span>}
+					</div>
 
-			<div
-				className={`column-menu-item ${currentSort === 'DESC' ? 'checked' : ''}`}
-				onClick={() => {
-					onSortDesc();
-					onClose();
-				}}
-			>
-				<span className="column-menu-icon">↓</span>
-				<span className="column-menu-label">Sort Z → A</span>
-				{currentSort === 'DESC' && <span className="column-menu-check">✓</span>}
-			</div>
+					<div
+						className={`column-menu-item ${currentSort === 'DESC' ? 'checked' : ''}`}
+						onClick={() => {
+							onSortDesc();
+							onClose();
+						}}
+					>
+						<span className="column-menu-icon">↓</span>
+						<span className="column-menu-label">Sort Z → A</span>
+						{currentSort === 'DESC' && <span className="column-menu-check">✓</span>}
+					</div>
 
-			{currentSort && (
-				<div
-					className="column-menu-item danger"
-					onClick={() => {
-						onClearSort();
-						onClose();
-					}}
-				>
-					<span className="column-menu-icon">✕</span>
-					<span className="column-menu-label">Clear sort</span>
-				</div>
+					{currentSort && (
+						<div
+							className="column-menu-item danger"
+							onClick={() => {
+								onClearSort();
+								onClose();
+							}}
+						>
+							<span className="column-menu-icon">✕</span>
+							<span className="column-menu-label">Clear sort</span>
+						</div>
+					)}
+
+					<div className="column-menu-separator" />
+				</>
 			)}
-
-			<div className="column-menu-separator" />
 
 			<div className="column-menu-item column-menu-info">
 				<span className="column-menu-icon">ⓘ</span>
 				<span className="column-menu-label">Property type</span>
 				<span className="column-menu-value">{getTypeName(columnType)}</span>
 			</div>
+
+			{isRollup && (
+				<div className="column-menu-item column-menu-info">
+					<span className="column-menu-icon">⚑</span>
+					<span className="column-menu-label">Powerbase Column</span>
+				</div>
+			)}
 
 			{isRelation && (
 				<>
