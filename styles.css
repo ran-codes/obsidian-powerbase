@@ -474,6 +474,11 @@
 	color: var(--text-muted);
 }
 
+/* Rollup chips: symmetric padding (no remove button) */
+.rollup-links .relation-chip {
+	padding: 0 8px;
+}
+
 .rollup-list {
 	white-space: nowrap;
 	overflow: hidden;

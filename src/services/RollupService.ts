@@ -174,10 +174,18 @@ export class RollupService {
 			}
 
 			case 'list':
-				return RollupService.filterNonNull(values).map((v) => String(v)).join(', ');
+				return RollupService.flattenAndResolveLinks(values);
 
-			case 'unique':
-				return [...new Set(RollupService.filterNonNull(values).map((v) => String(v)))].join(', ');
+			case 'unique': {
+				const items = RollupService.flattenAndResolveLinks(values);
+				const seen = new Set<string>();
+				return items.filter((item) => {
+					const key = typeof item === 'string' ? item : item.path;
+					if (seen.has(key)) return false;
+					seen.add(key);
+					return true;
+				});
+			}
 
 			case 'percent_true': {
 				const bools = values.filter((v) => typeof v === 'boolean');
@@ -199,6 +207,28 @@ export class RollupService {
 			default:
 				return null;
 		}
+	}
+
+	/**
+	 * Flatten values (expanding nested arrays) and resolve wikilinks to link objects.
+	 * Returns a mixed array: `{ path, display }` for wikilinks, plain strings for text.
+	 */
+	private static flattenAndResolveLinks(values: any[]): Array<{ path: string; display: string } | string> {
+		const result: Array<{ path: string; display: string } | string> = [];
+		for (const v of RollupService.filterNonNull(values)) {
+			const items = Array.isArray(v) ? v : [v];
+			for (const item of items) {
+				if (item === null || item === undefined) continue;
+				const str = String(item);
+				const parsed = ParseService.parseWikiLink(str);
+				if (parsed) {
+					result.push({ path: parsed.path, display: parsed.display });
+				} else {
+					result.push(str);
+				}
+			}
+		}
+		return result;
 	}
 
 	/** Coerce mixed values to valid numbers, discarding NaN. */
