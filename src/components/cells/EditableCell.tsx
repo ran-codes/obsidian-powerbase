@@ -6,6 +6,7 @@ import { TextEditor } from '../editors/TextEditor';
 import { ChipEditor } from '../editors/ChipEditor';
 import { DateEditor } from '../editors/DateEditor';
 import { PriorityEditor } from '../editors/PriorityEditor';
+import { StatusEditor } from '../editors/StatusEditor';
 
 /** Priority value → chip color mapping */
 const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -14,6 +15,14 @@ const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
 	low:    { bg: '#a3d5f5', text: '#1a1a1a' },
 };
 const PRIORITY_DEFAULT = { bg: '#e0e0e0', text: '#1a1a1a' };
+
+/** Status value → chip color mapping */
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+	todo:    { bg: '#f5a623', text: '#ffffff' },
+	backlog: { bg: '#b0b0b0', text: '#1a1a1a' },
+	done:    { bg: '#4caf50', text: '#ffffff' },
+};
+const STATUS_DEFAULT = { bg: '#e0e0e0', text: '#1a1a1a' };
 
 /** Strip wikilink brackets and show display name or basename */
 function stripWikilink(v: string): string {
@@ -68,11 +77,13 @@ export function EditableCell({
 	// Get column type early (needed for multitext detection)
 	const columnType = table.options.meta?.getColumnType?.(column.id);
 	const isPriorityColumn = columnType === 'priority';
+	const isStatusColumn = columnType === 'status';
 	const isMultitextColumn = columnType === 'list' || columnType === 'tags';
 	const isTagColumn = columnType === 'tags' || column.id === 'note.tags' || column.id.endsWith('.tags');
 	const isDateColumn = columnType === 'date';
 	const isDatetimeColumn = columnType === 'datetime';
 	const isPriorityEnhanced = table.options.meta?.isColumnPriorityEnhanced?.(column.id) ?? false;
+	const isStatusEnhanced = table.options.meta?.isColumnStatusEnhanced?.(column.id) ?? false;
 
 	// Edit mode for date/datetime
 	if (editing && (isDateColumn || isDatetimeColumn)) {
@@ -87,8 +98,8 @@ export function EditableCell({
 		);
 	}
 
-	// Edit mode for text/number (but NOT multitext or priority columns)
-	if (editing && typeof value !== 'boolean' && !Array.isArray(value) && !isMultitextColumn && !isPriorityColumn) {
+	// Edit mode for text/number (but NOT multitext, priority, or status columns)
+	if (editing && typeof value !== 'boolean' && !Array.isArray(value) && !isMultitextColumn && !isPriorityColumn && !isStatusColumn) {
 		const editorType = typeof value === 'number' ? 'number' : 'text';
 		return (
 			<TextEditor
@@ -128,6 +139,28 @@ export function EditableCell({
 			if (editing) {
 				return (
 					<PriorityEditor
+						currentValue={null}
+						onSelect={(selected) => {
+							setEditing(false);
+							table.options.meta?.updateCell?.(row.index, column.id, selected);
+						}}
+						onClose={() => setEditing(false)}
+					/>
+				);
+			}
+
+			return (
+				<div className="cell-chip-list" onClick={() => setEditing(true)}>
+					<span className="cell-empty-placeholder">Click to set...</span>
+				</div>
+			);
+		}
+
+		// Status column: single-select dropdown with 3 options
+		if (isStatusColumn) {
+			if (editing) {
+				return (
+					<StatusEditor
 						currentValue={null}
 						onSelect={(selected) => {
 							setEditing(false);
@@ -251,6 +284,75 @@ export function EditableCell({
 				<div className="cell-chip-list" onClick={() => setEditing(true)}>
 					<span className="cell-chip">
 						<span className="cell-chip-label">{priorityValue}</span>
+						<span
+							className="cell-chip-remove"
+							onClick={(e) => {
+								e.stopPropagation();
+								table.options.meta?.updateCell?.(row.index, column.id, null);
+							}}
+							title="Remove"
+						>
+							×
+						</span>
+					</span>
+				</div>
+			);
+		}
+
+		return (
+			<div className="cell-chip-list" onClick={() => setEditing(true)}>
+				<span className="cell-empty-placeholder">Click to set...</span>
+			</div>
+		);
+	}
+
+	// Status column — single-select with color-coded chip display
+	if (isStatusColumn) {
+		const statusValue: string | null = Array.isArray(value)
+			? (value.find((v: any) => typeof v === 'string' && v) ?? null)
+			: (typeof value === 'string' ? value : null);
+
+		if (editing) {
+			return (
+				<StatusEditor
+					currentValue={statusValue}
+					onSelect={(selected) => {
+						setEditing(false);
+						table.options.meta?.updateCell?.(row.index, column.id, selected);
+					}}
+					onClose={() => setEditing(false)}
+				/>
+			);
+		}
+
+		if (statusValue) {
+			if (isStatusEnhanced) {
+				const colors = STATUS_COLORS[statusValue.toLowerCase()] ?? STATUS_DEFAULT;
+				return (
+					<div className="cell-chip-list" onClick={() => setEditing(true)}>
+						<span
+							className="cell-chip cell-chip-status"
+							style={{ backgroundColor: colors.bg }}
+						>
+							<span className="cell-chip-label" style={{ color: colors.text }}>{statusValue}</span>
+							<span
+								className="cell-chip-remove"
+								onClick={(e) => {
+									e.stopPropagation();
+									table.options.meta?.updateCell?.(row.index, column.id, null);
+								}}
+								title="Remove"
+							>
+								×
+							</span>
+						</span>
+					</div>
+				);
+			}
+			return (
+				<div className="cell-chip-list" onClick={() => setEditing(true)}>
+					<span className="cell-chip">
+						<span className="cell-chip-label">{statusValue}</span>
 						<span
 							className="cell-chip-remove"
 							onClick={(e) => {

@@ -10,6 +10,8 @@ interface ColumnContextMenuProps {
 	columnType?: ColumnType;
 	isPriority?: boolean;
 	priorityEnhanced?: boolean;
+	isStatus?: boolean;
+	statusEnhanced?: boolean;
 	isRelation?: boolean;
 	relationEnhanced?: boolean;
 	currentSort?: 'ASC' | 'DESC' | null;
@@ -19,6 +21,7 @@ interface ColumnContextMenuProps {
 	onSortDesc: () => void;
 	onClearSort: () => void;
 	onTogglePriorityEnhanced?: (enabled: boolean) => void;
+	onToggleStatusEnhanced?: (enabled: boolean) => void;
 	onToggleRelationEnhanced?: (enabled: boolean) => void;
 }
 
@@ -35,6 +38,7 @@ function getTypeName(type?: ColumnType): string {
 		case 'rollup': return 'Rollup';
 		case 'actions': return 'Actions';
 		case 'priority': return 'Priority';
+		case 'status': return 'Status';
 		default: return 'Text';
 	}
 }
@@ -47,6 +51,8 @@ export function ColumnContextMenu({
 	columnType,
 	isPriority,
 	priorityEnhanced,
+	isStatus,
+	statusEnhanced,
 	isRelation,
 	relationEnhanced,
 	currentSort,
@@ -56,6 +62,7 @@ export function ColumnContextMenu({
 	onSortDesc,
 	onClearSort,
 	onTogglePriorityEnhanced,
+	onToggleStatusEnhanced,
 	onToggleRelationEnhanced,
 }: ColumnContextMenuProps) {
 	const menuRef = useRef<HTMLDivElement>(null);
@@ -215,6 +222,26 @@ export function ColumnContextMenu({
 						</span>
 						<span className="column-menu-label">Enhanced UI</span>
 						{priorityEnhanced && <span className="column-menu-check">✓</span>}
+					</div>
+				</>
+			)}
+
+			{isStatus && (
+				<>
+					<div className="column-menu-item column-menu-info">
+						<span className="column-menu-icon">⚑</span>
+						<span className="column-menu-label">Inferred Status Column</span>
+					</div>
+					<div
+						className={`column-menu-item ${statusEnhanced ? 'checked' : ''}`}
+						onClick={() => onToggleStatusEnhanced?.(!statusEnhanced)}
+						title="Color-coded chips: orange for todo, gray for backlog, green for done"
+					>
+						<span className="column-menu-icon">
+							{statusEnhanced ? '☑' : '☐'}
+						</span>
+						<span className="column-menu-label">Enhanced UI</span>
+						{statusEnhanced && <span className="column-menu-check">✓</span>}
 					</div>
 				</>
 			)}

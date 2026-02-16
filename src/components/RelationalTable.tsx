@@ -51,6 +51,7 @@ declare module '@tanstack/react-table' {
 		getColumnType: (columnId: string) => ColumnType | undefined;
 		getColumnValues: (columnId: string) => string[];
 		isColumnPriorityEnhanced: (columnId: string) => boolean;
+		isColumnStatusEnhanced: (columnId: string) => boolean;
 		quickActions?: QuickActionConfig[];
 		executeQuickAction?: (rowIndex: number, action: QuickActionConfig) => Promise<void>;
 	}
@@ -78,6 +79,7 @@ interface RelationalTableProps {
 	onHideColumn?: (columnId: string) => void;
 	onSortColumn?: (columnId: string, direction: 'ASC' | 'DESC' | null) => void;
 	onTogglePriorityEnhanced?: (columnId: string, enabled: boolean) => void;
+	onToggleStatusEnhanced?: (columnId: string, enabled: boolean) => void;
 	onToggleRelationEnhanced?: (columnId: string, enabled: boolean) => void;
 }
 
@@ -90,6 +92,8 @@ interface ContextMenuState {
 	columnType?: ColumnType;
 	isPriority?: boolean;
 	priorityEnhanced?: boolean;
+	isStatus?: boolean;
+	statusEnhanced?: boolean;
 	isRelation?: boolean;
 	relationEnhanced?: boolean;
 }
@@ -111,6 +115,7 @@ function getColumnTypeIcon(type?: ColumnType): ReactNode {
 		case 'rollup': return <Sigma {...props} />;
 		case 'actions': return <Zap {...props} />;
 		case 'priority': return <Flag {...props} />;
+		case 'status': return <Flag {...props} />;
 		case 'date': return <Calendar {...props} />;
 		case 'datetime': return <Calendar {...props} />;
 		case 'text': return <AlignJustify {...props} />;
@@ -132,6 +137,7 @@ export function RelationalTable({
 	onHideColumn,
 	onSortColumn,
 	onTogglePriorityEnhanced,
+	onToggleStatusEnhanced,
 	onToggleRelationEnhanced,
 }: RelationalTableProps) {
 	const [focusedCell, setFocusedCell] = useState<FocusedCell | null>(null);
@@ -249,6 +255,10 @@ export function RelationalTable({
 				const col = columns.find((c) => c.propertyId === columnId);
 				return !!(col?.isPriority && col?.priorityEnhanced);
 			},
+			isColumnStatusEnhanced: (columnId: string) => {
+				const col = columns.find((c) => c.propertyId === columnId);
+				return !!(col?.isStatus && col?.statusEnhanced);
+			},
 			getColumnValues: (columnId: string) => {
 				// Collect all unique values from this column across all rows
 				const values: string[] = [];
@@ -280,7 +290,7 @@ export function RelationalTable({
 
 	// Column header right-click handler
 	const handleColumnContextMenu = useCallback(
-		(e: React.MouseEvent, columnId: string, columnName: string, columnType?: ColumnType, isPriority?: boolean, priorityEnhanced?: boolean, isRelation?: boolean, relationEnhanced?: boolean) => {
+		(e: React.MouseEvent, columnId: string, columnName: string, columnType?: ColumnType, isPriority?: boolean, priorityEnhanced?: boolean, isStatus?: boolean, statusEnhanced?: boolean, isRelation?: boolean, relationEnhanced?: boolean) => {
 			e.preventDefault();
 			setContextMenu({
 				isOpen: true,
@@ -291,6 +301,8 @@ export function RelationalTable({
 				columnType,
 				isPriority,
 				priorityEnhanced,
+				isStatus,
+				statusEnhanced,
 				isRelation,
 				relationEnhanced,
 			});
@@ -430,7 +442,7 @@ export function RelationalTable({
 										style={{ width: header.getSize() }}
 										onContextMenu={(e) => {
 											if (col && !col.isQuickActions) {
-												handleColumnContextMenu(e, header.id, col.displayName, col.columnType, col.isPriority, col.priorityEnhanced, col.isRelation, col.relationEnhanced);
+												handleColumnContextMenu(e, header.id, col.displayName, col.columnType, col.isPriority, col.priorityEnhanced, col.isStatus, col.statusEnhanced, col.isRelation, col.relationEnhanced);
 											}
 										}}
 									>
@@ -523,6 +535,8 @@ export function RelationalTable({
 					columnType={contextMenu.columnType}
 					isPriority={contextMenu.isPriority}
 					priorityEnhanced={contextMenu.priorityEnhanced}
+					isStatus={contextMenu.isStatus}
+					statusEnhanced={contextMenu.statusEnhanced}
 					isRelation={contextMenu.isRelation}
 					relationEnhanced={contextMenu.relationEnhanced}
 					currentSort={
@@ -536,6 +550,13 @@ export function RelationalTable({
 					onTogglePriorityEnhanced={contextMenu.isPriority
 						? (enabled: boolean) => {
 							onTogglePriorityEnhanced?.(contextMenu.columnId, enabled);
+							closeContextMenu();
+						}
+						: undefined
+					}
+					onToggleStatusEnhanced={contextMenu.isStatus
+						? (enabled: boolean) => {
+							onToggleStatusEnhanced?.(contextMenu.columnId, enabled);
 							closeContextMenu();
 						}
 						: undefined

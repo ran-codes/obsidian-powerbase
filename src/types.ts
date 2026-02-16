@@ -23,7 +23,7 @@ export interface WikiLink {
 }
 
 /** Column data type for icon display */
-export type ColumnType = 'file' | 'relation' | 'tags' | 'list' | 'checkbox' | 'number' | 'text' | 'date' | 'datetime' | 'rollup' | 'actions' | 'priority';
+export type ColumnType = 'file' | 'relation' | 'tags' | 'list' | 'checkbox' | 'number' | 'text' | 'date' | 'datetime' | 'rollup' | 'actions' | 'priority' | 'status';
 
 /** Column metadata for the table */
 export interface ColumnMeta {
@@ -45,6 +45,10 @@ export interface ColumnMeta {
 	isPriority?: boolean;
 	/** Whether enhanced priority UI is active (colored chips) */
 	priorityEnhanced?: boolean;
+	/** Whether this is an inferred status column */
+	isStatus?: boolean;
+	/** Whether enhanced status UI is active (colored chips) */
+	statusEnhanced?: boolean;
 	/** Whether this is a quick actions column */
 	isQuickActions?: boolean;
 	/** Column data type for header icon */

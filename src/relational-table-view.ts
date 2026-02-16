@@ -189,12 +189,18 @@ export class RelationalTableView extends BasesView {
 			const priorityEnhanced = isPriority
 				? (this.config.get(`priorityEnhanced_${propIdStr}`) ?? 'true') !== 'false'
 				: undefined;
+			const isStatus = this.detectStatusColumn(propIdStr);
+			const statusEnhanced = isStatus
+				? (this.config.get(`statusEnhanced_${propIdStr}`) ?? 'true') !== 'false'
+				: undefined;
 			const relationEnhanced = isRelation
 				? (this.config.get(`relationEnhanced_${propIdStr}`) ?? 'true') !== 'false'
 				: undefined;
 			const effectiveColumnType = (isPriority && priorityEnhanced)
 				? 'priority' as ColumnType
-				: columnType;
+				: (isStatus && statusEnhanced)
+					? 'status' as ColumnType
+					: columnType;
 			return {
 				propertyId: propIdStr,
 				displayName: config.getDisplayName(propId),
@@ -202,6 +208,8 @@ export class RelationalTableView extends BasesView {
 				relationEnhanced,
 				isPriority,
 				priorityEnhanced,
+				isStatus,
+				statusEnhanced,
 				columnType: effectiveColumnType,
 				relationFolderFilter: isRelation
 					? this.inferRelationFolder(propIdStr, baseFolder)
@@ -321,6 +329,7 @@ export class RelationalTableView extends BasesView {
 					onHideColumn: this.handleHideColumn.bind(this),
 					onSortColumn: this.handleSortColumn.bind(this),
 					onTogglePriorityEnhanced: this.handleTogglePriorityEnhanced.bind(this),
+					onToggleStatusEnhanced: this.handleToggleStatusEnhanced.bind(this),
 					onToggleRelationEnhanced: this.handleToggleRelationEnhanced.bind(this),
 				}))
 			)
@@ -467,10 +476,26 @@ export class RelationalTableView extends BasesView {
 	}
 
 	/**
+	 * Detect if a column is a status column by property name.
+	 */
+	private detectStatusColumn(propId: string): boolean {
+		const name = this.extractPropertyName(propId).toLowerCase();
+		return name === 'status';
+	}
+
+	/**
 	 * Toggle enhanced priority UI for a column and re-render.
 	 */
 	private handleTogglePriorityEnhanced(columnId: string, enabled: boolean): void {
 		(this.config as any).set?.(`priorityEnhanced_${columnId}`, enabled ? 'true' : 'false');
+		this.renderTable();
+	}
+
+	/**
+	 * Toggle enhanced status UI for a column and re-render.
+	 */
+	private handleToggleStatusEnhanced(columnId: string, enabled: boolean): void {
+		(this.config as any).set?.(`statusEnhanced_${columnId}`, enabled ? 'true' : 'false');
 		this.renderTable();
 	}
 
