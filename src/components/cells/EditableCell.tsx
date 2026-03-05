@@ -18,9 +18,11 @@ const PRIORITY_DEFAULT = { bg: '#e0e0e0', text: '#1a1a1a' };
 
 /** Status value → chip color mapping */
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-	todo:    { bg: '#f5d89a', text: '#1a1a1a' },
-	backlog: { bg: '#d5d5d5', text: '#1a1a1a' },
-	done:    { bg: '#4caf50', text: '#ffffff' },
+	'todo':        { bg: '#f5d89a', text: '#1a1a1a' },
+	'in progress': { bg: '#58a6ff', text: '#ffffff' },
+	'backlog':     { bg: '#d5d5d5', text: '#1a1a1a' },
+	'blocked':     { bg: '#888888', text: '#ffffff' },
+	'done':        { bg: '#4caf50', text: '#ffffff' },
 };
 const STATUS_DEFAULT = { bg: '#e0e0e0', text: '#1a1a1a' };
 
