@@ -355,13 +355,13 @@ export class RelationalTableView extends BasesView {
 
 	/**
 	 * Find the Bases toolbar element by walking up from our container.
+	 * Targets the right-side action bar (.bases-header-actions) inside .bases-header.
 	 */
 	private findToolbar(): HTMLElement | null {
-		// .bases-header is a sibling of containerEl inside .bases-embed
 		const basesEmbed = this.containerEl.parentElement;
 		if (!basesEmbed) return null;
-		const header = basesEmbed.querySelector('.bases-header');
-		if (header instanceof HTMLElement) return header;
+		const toolbar = basesEmbed.querySelector('.bases-toolbar');
+		if (toolbar instanceof HTMLElement) return toolbar;
 		return null;
 	}
 
@@ -397,9 +397,8 @@ export class RelationalTableView extends BasesView {
 			}
 		});
 
-		// Insert between Filter and Properties if possible
-		const allChildren = Array.from(toolbar.children) as HTMLElement[];
-		const propertiesBtn = allChildren.find((b) => b.textContent?.trim().startsWith('Properties'));
+		// Insert before Properties button
+		const propertiesBtn = toolbar.querySelector('.bases-toolbar-properties-menu');
 		if (propertiesBtn) {
 			toolbar.insertBefore(btn, propertiesBtn);
 		} else {
