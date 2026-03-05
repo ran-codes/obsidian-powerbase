@@ -6,6 +6,7 @@
       "Skill(ship)",
       "WebFetch(domain:help.obsidian.md)",
       "WebSearch",
+      "Bash(*)",
       "Bash(npm run build:*)",
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
