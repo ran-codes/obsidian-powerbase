@@ -83,6 +83,7 @@ interface RelationalTableProps {
 	onToggleRelationEnhanced?: (columnId: string, enabled: boolean) => void;
 	columnSizing?: Record<string, number>;
 	onColumnResize?: (columnId: string, width: number) => void;
+	groupOrder?: string[];
 }
 
 interface ContextMenuState {
@@ -143,6 +144,7 @@ export function RelationalTable({
 	onToggleRelationEnhanced,
 	columnSizing: persistedColumnSizing,
 	onColumnResize,
+	groupOrder,
 }: RelationalTableProps) {
 	const [focusedCell, setFocusedCell] = useState<FocusedCell | null>(null);
 	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -170,6 +172,42 @@ export function RelationalTable({
 			return next;
 		});
 	}, []);
+
+	// Reorder groups based on persisted groupOrder
+	const orderedGroups = useMemo(() => {
+		if (!groups || groups.length <= 1 || !groupOrder || groupOrder.length === 0) return groups;
+		const orderMap = new Map(groupOrder.map((key, idx) => [key, idx]));
+		return [...groups].sort((a, b) => {
+			const aIdx = orderMap.get(a.key);
+			const bIdx = orderMap.get(b.key);
+			if (aIdx !== undefined && bIdx !== undefined) return aIdx - bIdx;
+			if (aIdx !== undefined) return -1;
+			if (bIdx !== undefined) return 1;
+			return 0; // preserve original order for unordered items
+		});
+	}, [groups, groupOrder]);
+
+	// Reorder rows to match the reordered groups
+	const orderedRows = useMemo(() => {
+		if (!orderedGroups || !groups || orderedGroups === groups) return rows;
+		const reordered: TableRowData[] = [];
+		for (const group of orderedGroups) {
+			const srcRows = rows.slice(group.startIndex, group.startIndex + group.count);
+			reordered.push(...srcRows);
+		}
+		return reordered;
+	}, [orderedGroups, groups, rows]);
+
+	// Rebuild startIndex values for reordered groups
+	const finalGroups = useMemo(() => {
+		if (!orderedGroups) return orderedGroups;
+		let idx = 0;
+		return orderedGroups.map((g) => {
+			const updated = { ...g, startIndex: idx };
+			idx += g.count;
+			return updated;
+		});
+	}, [orderedGroups]);
 
 	// Build column definitions from ColumnMeta[]
 	const columnDefs: ColumnDef<TableRowData, any>[] = useMemo(
@@ -222,7 +260,7 @@ export function RelationalTable({
 	);
 
 	const table = useReactTable({
-		data: rows,
+		data: orderedRows,
 		columns: columnDefs,
 		getCoreRowModel: getCoreRowModel(),
 		manualSorting: true,
@@ -489,8 +527,8 @@ export function RelationalTable({
 					))}
 				</thead>
 				<tbody>
-					{groups && groups.length > 0
-						? groups.map((group) => {
+					{finalGroups && finalGroups.length > 0
+						? finalGroups.map((group) => {
 							const isCollapsed = collapsedGroups.has(group.key);
 							const groupRows = table.getRowModel().rows.slice(
 								group.startIndex,

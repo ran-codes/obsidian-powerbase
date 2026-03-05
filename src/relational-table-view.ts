@@ -21,12 +21,16 @@ const viewOptionsState = {
 
 export class RelationalTableView extends BasesView {
 	type = 'relational-table';
+	private containerEl: HTMLElement;
 	private viewContainerEl: HTMLElement;
 	private plugin: Plugin;
 	private mruService: MruService;
 	private reactRoot: Root | null = null;
 	private propertyTypes: Record<string, string> | null = null;
 	private renderTimer: ReturnType<typeof setTimeout> | null = null;
+	private toolbarGroupBtn: HTMLElement | null = null;
+	private groupOrderPopoverEl: HTMLElement | null = null;
+	private lastGroups: GroupInfo[] = [];
 
 	constructor(
 		controller: QueryController,
@@ -35,6 +39,7 @@ export class RelationalTableView extends BasesView {
 		mruService: MruService
 	) {
 		super(controller);
+		this.containerEl = containerEl;
 		this.viewContainerEl = containerEl.createDiv({ cls: 'relational-table-container' });
 		this.plugin = plugin;
 		this.mruService = mruService;
@@ -67,6 +72,9 @@ export class RelationalTableView extends BasesView {
 			this.reactRoot.unmount();
 			this.reactRoot = null;
 		}
+		this.toolbarGroupBtn?.remove();
+		this.toolbarGroupBtn = null;
+		this.closeGroupOrderPopover();
 	}
 
 	onDataUpdated(): void {
@@ -306,6 +314,8 @@ export class RelationalTableView extends BasesView {
 			recordSelection: (scope: string, notePath: string) => this.mruService.recordSelection(scope, notePath),
 		};
 
+		this.lastGroups = groups;
+
 		this.reactRoot!.render(
 			React.createElement(
 				AppContext.Provider,
@@ -333,9 +343,192 @@ export class RelationalTableView extends BasesView {
 					onToggleRelationEnhanced: this.handleToggleRelationEnhanced.bind(this),
 				columnSizing: this.getPersistedColumnSizing(columns),
 				onColumnResize: this.handleColumnResize.bind(this),
+				groupOrder: this.getPersistedGroupOrder(),
+			
 				}))
 			)
 		);
+
+		// Inject Group Order button into Bases toolbar
+		this.updateToolbarGroupButton(groups);
+	}
+
+	/**
+	 * Find the Bases toolbar element by walking up from our container.
+	 */
+	private findToolbar(): HTMLElement | null {
+		// .bases-header is a sibling of containerEl inside .bases-embed
+		const basesEmbed = this.containerEl.parentElement;
+		if (!basesEmbed) return null;
+		const header = basesEmbed.querySelector('.bases-header');
+		if (header instanceof HTMLElement) return header;
+		return null;
+	}
+
+	/**
+	 * Inject or update the Group Order button in the Bases toolbar.
+	 * Shows when 2+ groups exist, hides otherwise.
+	 */
+	private updateToolbarGroupButton(groups: GroupInfo[]): void {
+		const hasGroups = groups.length > 1;
+
+		if (!hasGroups) {
+			this.toolbarGroupBtn?.remove();
+			this.toolbarGroupBtn = null;
+			this.closeGroupOrderPopover();
+			return;
+		}
+
+		if (this.toolbarGroupBtn) return; // already injected
+
+		const toolbar = this.findToolbar();
+		if (!toolbar) return; // toolbar not found, skip gracefully
+
+		const btn = document.createElement('div');
+		btn.className = 'powerbase-group-order-btn';
+		btn.setAttribute('aria-label', 'Custom group order');
+		btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg><span>Groups</span>`;
+		btn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			if (this.groupOrderPopoverEl) {
+				this.closeGroupOrderPopover();
+			} else {
+				this.showGroupOrderPopover();
+			}
+		});
+
+		// Insert between Filter and Properties if possible
+		const allChildren = Array.from(toolbar.children) as HTMLElement[];
+		const propertiesBtn = allChildren.find((b) => b.textContent?.trim().startsWith('Properties'));
+		if (propertiesBtn) {
+			toolbar.insertBefore(btn, propertiesBtn);
+		} else {
+			toolbar.appendChild(btn);
+		}
+		this.toolbarGroupBtn = btn;
+	}
+
+	/**
+	 * Show the group order popover anchored below the toolbar button.
+	 */
+	private showGroupOrderPopover(): void {
+		if (this.groupOrderPopoverEl || !this.toolbarGroupBtn) return;
+
+		const groups = this.lastGroups;
+		const groupOrder = this.getPersistedGroupOrder();
+
+		// Sort groups by persisted order (same logic as React useMemo)
+		const orderMap = new Map(groupOrder.map((key, idx) => [key, idx]));
+		const sorted = [...groups].sort((a, b) => {
+			const aIdx = orderMap.get(a.key);
+			const bIdx = orderMap.get(b.key);
+			if (aIdx !== undefined && bIdx !== undefined) return aIdx - bIdx;
+			if (aIdx !== undefined) return -1;
+			if (bIdx !== undefined) return 1;
+			return 0;
+		});
+
+		const popover = document.createElement('div');
+		popover.className = 'group-order-popover';
+
+		const title = document.createElement('div');
+		title.className = 'group-order-title';
+		title.textContent = 'Group order';
+		popover.appendChild(title);
+
+		let dragSrcIdx: number | null = null;
+
+		const rebuildItems = (items: GroupInfo[]) => {
+			// Remove existing items
+			popover.querySelectorAll('.group-order-item').forEach((el) => el.remove());
+
+			items.forEach((group, idx) => {
+				const item = document.createElement('div');
+				item.className = 'group-order-item';
+				item.draggable = true;
+				item.dataset.idx = String(idx);
+
+				item.innerHTML = `<span class="group-order-grip"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg></span><span class="group-order-label">${group.label || '(empty)'}</span><span class="group-order-count">${group.count}</span>`;
+
+				item.addEventListener('dragstart', (e) => {
+					dragSrcIdx = idx;
+					item.classList.add('dragging');
+					e.dataTransfer!.effectAllowed = 'move';
+				});
+
+				item.addEventListener('dragover', (e) => {
+					e.preventDefault();
+					e.dataTransfer!.dropEffect = 'move';
+				});
+
+				item.addEventListener('drop', (e) => {
+					e.preventDefault();
+					if (dragSrcIdx === null || dragSrcIdx === idx) return;
+					const next = [...items];
+					const [moved] = next.splice(dragSrcIdx, 1);
+					next.splice(idx, 0, moved);
+					dragSrcIdx = null;
+
+					// Persist and re-render
+					const orderedKeys = next.map((g) => g.key);
+					(this.config as any).set?.('groupOrder', orderedKeys.join(','));
+					rebuildItems(next);
+					this.scheduleRender();
+				});
+
+				item.addEventListener('dragend', () => {
+					dragSrcIdx = null;
+					item.classList.remove('dragging');
+				});
+
+				popover.appendChild(item);
+			});
+		};
+
+		rebuildItems(sorted);
+
+		// Position below the button
+		document.body.appendChild(popover);
+		const btnRect = this.toolbarGroupBtn.getBoundingClientRect();
+		let top = btnRect.bottom + 4;
+		let left = btnRect.right - popover.offsetWidth;
+		if (left < 0) left = btnRect.left;
+		if (top + popover.offsetHeight > window.innerHeight) {
+			top = btnRect.top - popover.offsetHeight - 4;
+		}
+		popover.style.top = `${top}px`;
+		popover.style.left = `${left}px`;
+
+		this.groupOrderPopoverEl = popover;
+
+		// Close on click outside or Escape
+		const closeHandler = (e: MouseEvent) => {
+			if (!popover.contains(e.target as Node) && e.target !== this.toolbarGroupBtn && !this.toolbarGroupBtn?.contains(e.target as Node)) {
+				this.closeGroupOrderPopover();
+			}
+		};
+		const escHandler = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') this.closeGroupOrderPopover();
+		};
+		setTimeout(() => {
+			document.addEventListener('mousedown', closeHandler);
+			document.addEventListener('keydown', escHandler);
+		}, 0);
+		(popover as any)._cleanup = () => {
+			document.removeEventListener('mousedown', closeHandler);
+			document.removeEventListener('keydown', escHandler);
+		};
+	}
+
+	/**
+	 * Close the group order popover.
+	 */
+	private closeGroupOrderPopover(): void {
+		if (this.groupOrderPopoverEl) {
+			(this.groupOrderPopoverEl as any)._cleanup?.();
+			this.groupOrderPopoverEl.remove();
+			this.groupOrderPopoverEl = null;
+		}
 	}
 
 	/**
@@ -529,6 +722,14 @@ export class RelationalTableView extends BasesView {
 			}
 		}
 		return sizing;
+	}
+
+	/**
+	 * Read persisted group order from config.
+	 */
+	private getPersistedGroupOrder(): string[] {
+		const raw = this.config.get('groupOrder') as string | undefined;
+		return raw ? raw.split(',').filter(Boolean) : [];
 	}
 
 	/**
