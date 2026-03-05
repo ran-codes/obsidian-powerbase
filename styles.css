@@ -573,6 +573,30 @@ td.cell-focused {
 	bottom: 0;
 }
 
+/* File name cell wrapper */
+.cell-file-name-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	overflow: hidden;
+	width: 100%;
+}
+
+/* Copy icon — always visible */
+.cell-file-name-copy {
+	flex-shrink: 0;
+	color: var(--text-faint);
+	cursor: pointer;
+	display: inline-flex;
+	line-height: 0;
+}
+.cell-file-name-copy:hover {
+	color: var(--text-normal);
+}
+.cell-file-name-copy-check {
+	color: var(--interactive-success, #4caf50);
+}
+
 /* File name link */
 .cell-file-name {
 	color: var(--text-accent);
@@ -580,10 +604,8 @@ td.cell-focused {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	width: 100%;
-	display: inline-block;
+	min-width: 0;
 }
-
 .cell-file-name:hover {
 	text-decoration: underline;
 }
