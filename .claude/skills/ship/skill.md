@@ -53,6 +53,7 @@ Ship current work: evaluate changes, create a branch if needed, commit, open iss
 
 ### 6. Prompt user for review
 
+- Open the PR in the browser: `start <PR_URL>` (Windows) or `open <PR_URL>` (macOS).
 - Show the PR URL.
 - Show the diff summary.
 - **Ask the user**: "PR is ready for review. Merge it?" — wait for explicit approval before proceeding.

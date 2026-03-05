@@ -24,6 +24,14 @@ Obsidian community plugin that extends Bases with relation columns, rollups, and
 | `gh` CLI | GitHub issues, PRs, releases |
 | [Loom](https://github.com/Drexel-UHC/loom) | Shared agentic skills & workflows — check here when asked to look up cross-repo skills, conventions, or reusable patterns |
 
+## Skills
+
+| Skill | Description |
+|-------|-------------|
+| `/ship` | Evaluate changes, branch, commit, create issue + PR, get user review, merge, clean up |
+| `/clean` | Delete local and remote branches fully merged into main |
+| `/sync-plugin-docs` | Regenerate `plugin-docs/CLAUDE.md` from source code and agent-notes |
+
 ## Quick Start
 
 ```bash
