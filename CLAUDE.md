@@ -13,7 +13,16 @@ Obsidian community plugin that extends Bases with relation columns, rollups, and
   - **No empty lines between bullet points.** Keep bullet lists compact.
   - Empty lines only between major sections (after headings).
   - **Spaces in task filenames are fine.** Obsidian handles them natively. Folder names still use hyphens (YYYY-MM-DD format). Double hyphens for date ranges: `archive/2026-01-20--2026-01-23/`
-  -
+
+## Tech Stack
+
+| Tool | Purpose |
+|------|---------|
+| TypeScript + esbuild | Plugin source and build |
+| React + TanStack Table | UI components |
+| Obsidian Bases Plugin API | View registration (v1.10.0+) |
+| `gh` CLI | GitHub issues, PRs, releases |
+| [Loom](https://github.com/Drexel-UHC/loom) | Shared agentic skills & workflows — check here when asked to look up cross-repo skills, conventions, or reusable patterns |
 
 ## Quick Start
 
@@ -28,6 +37,7 @@ Deploy to a vault: copy `main.js`, `manifest.json`, `styles.css`, and `plugin-do
 ## Iteration Workflow
 
 After any code change, always:
+
 1. `npm run build`
 2. Copy `main.js`, `manifest.json`, `styles.css`, and `plugin-docs/CLAUDE.md` to `D:/GitHub/work/.obsidian/plugins/powerbase/`
 
