@@ -81,6 +81,8 @@ interface RelationalTableProps {
 	onTogglePriorityEnhanced?: (columnId: string, enabled: boolean) => void;
 	onToggleStatusEnhanced?: (columnId: string, enabled: boolean) => void;
 	onToggleRelationEnhanced?: (columnId: string, enabled: boolean) => void;
+	columnSizing?: Record<string, number>;
+	onColumnResize?: (columnId: string, width: number) => void;
 }
 
 interface ContextMenuState {
@@ -139,11 +141,15 @@ export function RelationalTable({
 	onTogglePriorityEnhanced,
 	onToggleStatusEnhanced,
 	onToggleRelationEnhanced,
+	columnSizing: persistedColumnSizing,
+	onColumnResize,
 }: RelationalTableProps) {
 	const [focusedCell, setFocusedCell] = useState<FocusedCell | null>(null);
 	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 	const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+	const [columnSizing, setColumnSizing] = useState<Record<string, number>>(persistedColumnSizing ?? {});
 	const tableContainerRef = useRef<HTMLDivElement>(null);
+	const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Clear focus when clicking anywhere outside the table
 	useEffect(() => {
@@ -207,7 +213,7 @@ export function RelationalTable({
 									: col.propertyId === 'file.name'
 										? FileNameCell
 										: EditableCell,
-						size: 150,
+						size: col.propertyId === 'file.name' ? 250 : 150,
 						minSize: 50,
 					}
 				)
@@ -221,6 +227,20 @@ export function RelationalTable({
 		getCoreRowModel: getCoreRowModel(),
 		manualSorting: true,
 		columnResizeMode: 'onChange',
+		state: { columnSizing },
+		onColumnSizingChange: (updater) => {
+			const next = typeof updater === 'function' ? updater(columnSizing) : updater;
+			setColumnSizing(next);
+			// Debounce persist to config
+			if (onColumnResize) {
+				if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+				resizeTimerRef.current = setTimeout(() => {
+					for (const [id, width] of Object.entries(next)) {
+						onColumnResize(id, width);
+					}
+				}, 300);
+			}
+		},
 		meta: {
 			updateRelation: (
 				rowIndex: number,

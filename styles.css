@@ -580,7 +580,7 @@ td.cell-focused {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 300px;
+	width: 100%;
 	display: inline-block;
 }
 

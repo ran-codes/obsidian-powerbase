@@ -331,6 +331,8 @@ export class RelationalTableView extends BasesView {
 					onTogglePriorityEnhanced: this.handleTogglePriorityEnhanced.bind(this),
 					onToggleStatusEnhanced: this.handleToggleStatusEnhanced.bind(this),
 					onToggleRelationEnhanced: this.handleToggleRelationEnhanced.bind(this),
+				columnSizing: this.getPersistedColumnSizing(columns),
+				onColumnResize: this.handleColumnResize.bind(this),
 				}))
 			)
 		);
@@ -505,6 +507,28 @@ export class RelationalTableView extends BasesView {
 	private handleToggleRelationEnhanced(columnId: string, enabled: boolean): void {
 		(this.config as any).set?.(`relationEnhanced_${columnId}`, enabled ? 'true' : 'false');
 		this.renderTable();
+	}
+
+	/**
+	 * Persist a column width to config (called on resize end).
+	 */
+	private handleColumnResize(columnId: string, width: number): void {
+		(this.config as any).set?.(`colWidth_${columnId}`, String(Math.round(width)));
+	}
+
+	/**
+	 * Load persisted column widths from config.
+	 */
+	private getPersistedColumnSizing(columns: { propertyId: string }[]): Record<string, number> {
+		const sizing: Record<string, number> = {};
+		for (const col of columns) {
+			const raw = this.config.get(`colWidth_${col.propertyId}`) as string | undefined;
+			if (raw) {
+				const w = parseInt(raw, 10);
+				if (w > 0) sizing[col.propertyId] = w;
+			}
+		}
+		return sizing;
 	}
 
 	/**
