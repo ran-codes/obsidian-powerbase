@@ -14,7 +14,8 @@
       "Bash(gh api:*)",
       "Bash(gh issue:*)",
       "Bash(gh pr:*)",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(git fetch:*)"
     ]
   }
 }
