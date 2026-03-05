@@ -448,7 +448,16 @@ export class RelationalTableView extends BasesView {
 				item.draggable = true;
 				item.dataset.idx = String(idx);
 
-				item.innerHTML = `<span class="group-order-grip"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg></span><span class="group-order-label">${group.label || '(empty)'}</span><span class="group-order-count">${group.count}</span>`;
+				const grip = document.createElement('span');
+				grip.className = 'group-order-grip';
+				grip.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>`;
+				const label = document.createElement('span');
+				label.className = 'group-order-label';
+				label.textContent = group.label || '(empty)';
+				const count = document.createElement('span');
+				count.className = 'group-order-count';
+				count.textContent = String(group.count);
+				item.append(grip, label, count);
 
 				item.addEventListener('dragstart', (e) => {
 					dragSrcIdx = idx;
