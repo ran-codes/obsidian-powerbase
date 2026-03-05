@@ -14,6 +14,7 @@ Obsidian plugin that extends **Bases** (v1.10.0+) with relation columns, rollup 
 - **Group-by** — rows grouped by any property, with collapsible headers
 - **Date/datetime columns** — calendar icon, MM/DD/YYYY display, custom calendar popup with month navigation, today/clear buttons
 - **Priority enhanced UI** — auto-detected `priority` columns rendered as color-coded chips, toggleable via column context menu
+- **Status enhanced UI** — auto-detected `status` columns rendered as color-coded single-select dropdown (todo/backlog/blocked/done), toggleable via column context menu
 - **List/tags chip editing** — inline chip editor with type-ahead suggestions dropdown, backspace to remove last chip
 - **Column context menu** — right-click any column header to hide, sort, view property type, toggle enhanced UI
 - **File context menu** — right-click file names for open/rename/copy/delete actions
@@ -101,6 +102,7 @@ views:
 | `relationDetection` | `auto` (default) or `manual` |
 | `colType_{propId}` | Persisted column type cache (auto-set) |
 | `priorityEnhanced_{propId}` | `true`/`false` — toggle priority UI (default: true) |
+| `statusEnhanced_{propId}` | `true`/`false` — toggle status UI (default: true) |
 | `relationEnhanced_{propId}` | `true`/`false` — toggle relation chip UI (default: true) |
 
 ## Feature Reference
@@ -243,6 +245,20 @@ Columns named exactly `priority` (case-insensitive property name) are auto-detec
 
 Toggle via: right-click column header → **Enhanced UI** checkbox, or set `priorityEnhanced_note.priority: "false"` in the view config.
 
+### Status Enhanced UI
+
+Columns named exactly `status` (case-insensitive property name) are auto-detected. Enhanced UI is enabled by default and renders a single-select dropdown with color-coded chips:
+
+| Value | Color |
+|-------|-------|
+| `todo` | Yellow (`#f5d89a`) |
+| `backlog` | Light gray (`#e0e0e0`) |
+| `blocked` | Dark gray (`#888888`) |
+| `done` | Green (`#4caf50`) |
+| Other | Neutral gray (`#e0e0e0`) |
+
+Toggle via: right-click column header → **Enhanced UI** checkbox, or set `statusEnhanced_note.status: "false"` in the view config.
+
 ### Column Context Menu
 
 Right-click any column header to access:
@@ -250,7 +266,7 @@ Right-click any column header to access:
 - **Sort A→Z / Z→A** — sort rows by this column (checkmark shows active sort)
 - **Clear sort** — remove active sort
 - **Property type** — shows inferred type (Text, Number, Relation, Tags, etc.)
-- **Enhanced UI** toggle — for priority and relation columns only
+- **Enhanced UI** toggle — for priority, status, and relation columns
 
 ### File Context Menu
 
@@ -296,7 +312,7 @@ The plugin infers column types for header icons and editing behavior using three
 2. **Data detection** — scans first 10 rows for value types (boolean→checkbox, number, array→list, ISO date/datetime strings)
 3. **Persisted cache** — non-text types are saved to `colType_{propId}` in the `.base` file so they survive cell clears and plugin reloads
 
-Supported types: `file`, `relation`, `tags`, `list`, `checkbox`, `number`, `text`, `date`, `datetime`, `rollup`, `actions`, `priority`.
+Supported types: `file`, `relation`, `tags`, `list`, `checkbox`, `number`, `text`, `date`, `datetime`, `rollup`, `actions`, `priority`, `status`.
 
 ## Complete .base Example
 
@@ -355,4 +371,5 @@ The Obsidian Bases API returns `Value` objects from `entry.getValue(propId)`. Th
 - **Changes not persisting** — The plugin uses a debounced write queue (250ms). Wait ~300ms after editing. Bidi sync uses `processFrontMatter` for atomic writes.
 - **Date column showing as text** — Ensure the property is registered as `date` or `datetime` in Obsidian's property settings. Alternatively, populate at least one row with a valid ISO date — the plugin will detect and persist the type.
 - **Priority colors not showing** — Property must be named exactly `priority`. Enhanced UI defaults to on; check it hasn't been disabled via `priorityEnhanced_note.priority: "false"`.
+- **Status dropdown not showing** — Property must be named exactly `status`. Enhanced UI defaults to on; check it hasn't been disabled via `statusEnhanced_note.status: "false"`.
 - **Plugin not loading** — Requires Bases plugin v1.10.0+ with the Plugin API enabled.

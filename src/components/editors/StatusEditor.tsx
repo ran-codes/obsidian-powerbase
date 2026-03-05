@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-/** The three default status options */
-const STATUS_OPTIONS = ['todo', 'backlog', 'done'] as const;
+/** Default status options */
+const STATUS_OPTIONS = ['todo', 'backlog', 'blocked', 'done'] as const;
 
 /** Status value color mapping */
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 	todo:    { bg: '#f5d89a', text: '#1a1a1a' },
-	backlog: { bg: '#d5d5d5', text: '#1a1a1a' },
+	backlog: { bg: '#e0e0e0', text: '#1a1a1a' },
+	blocked: { bg: '#888888', text: '#ffffff' },
 	done:    { bg: '#4caf50', text: '#ffffff' },
 };
 
