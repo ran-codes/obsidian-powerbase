@@ -58,9 +58,9 @@ export function EditableCell({
 	const handleSave = useCallback(
 		(newValue: any) => {
 			setEditing(false);
-			table.options.meta?.updateCell?.(row.index, column.id, newValue);
+			table.options.meta?.updateCell?.(row.original.file, column.id, newValue);
 		},
-		[table, row.index, column.id]
+		[table, row.original.file, column.id]
 	);
 
 	const handleCancel = useCallback(() => {
@@ -144,7 +144,7 @@ export function EditableCell({
 						currentValue={null}
 						onSelect={(selected) => {
 							setEditing(false);
-							table.options.meta?.updateCell?.(row.index, column.id, selected);
+							table.options.meta?.updateCell?.(row.original.file, column.id, selected);
 						}}
 						onClose={() => setEditing(false)}
 					/>
@@ -166,7 +166,7 @@ export function EditableCell({
 						currentValue={null}
 						onSelect={(selected) => {
 							setEditing(false);
-							table.options.meta?.updateCell?.(row.index, column.id, selected);
+							table.options.meta?.updateCell?.(row.original.file, column.id, selected);
 						}}
 						onClose={() => setEditing(false)}
 					/>
@@ -191,7 +191,7 @@ export function EditableCell({
 						suggestions={allValues}
 						isTagColumn={isTagColumn}
 						onAdd={(newValue) => {
-							table.options.meta?.updateCell?.(row.index, column.id, [newValue]);
+							table.options.meta?.updateCell?.(row.original.file, column.id, [newValue]);
 						}}
 						onRemove={() => {}}
 						onClose={() => setEditing(false)}
@@ -228,7 +228,7 @@ export function EditableCell({
 				className="cell-checkbox cell-checkbox-editable"
 				onChange={(e) => {
 					table.options.meta?.updateCell?.(
-						row.index,
+						row.original.file,
 						column.id,
 						e.target.checked
 					);
@@ -250,7 +250,7 @@ export function EditableCell({
 					currentValue={priorityValue}
 					onSelect={(selected) => {
 						setEditing(false);
-						table.options.meta?.updateCell?.(row.index, column.id, selected);
+						table.options.meta?.updateCell?.(row.original.file, column.id, selected);
 					}}
 					onClose={() => setEditing(false)}
 				/>
@@ -272,7 +272,7 @@ export function EditableCell({
 								className="cell-chip-remove"
 								onClick={(e) => {
 									e.stopPropagation();
-									table.options.meta?.updateCell?.(row.index, column.id, null);
+									table.options.meta?.updateCell?.(row.original.file, column.id, null);
 								}}
 								title="Remove"
 							>
@@ -290,7 +290,7 @@ export function EditableCell({
 							className="cell-chip-remove"
 							onClick={(e) => {
 								e.stopPropagation();
-								table.options.meta?.updateCell?.(row.index, column.id, null);
+								table.options.meta?.updateCell?.(row.original.file, column.id, null);
 							}}
 							title="Remove"
 						>
@@ -320,7 +320,7 @@ export function EditableCell({
 					currentValue={statusValue}
 					onSelect={(selected) => {
 						setEditing(false);
-						table.options.meta?.updateCell?.(row.index, column.id, selected);
+						table.options.meta?.updateCell?.(row.original.file, column.id, selected);
 					}}
 					onClose={() => setEditing(false)}
 				/>
@@ -341,7 +341,7 @@ export function EditableCell({
 								className="cell-chip-remove"
 								onClick={(e) => {
 									e.stopPropagation();
-									table.options.meta?.updateCell?.(row.index, column.id, null);
+									table.options.meta?.updateCell?.(row.original.file, column.id, null);
 								}}
 								title="Remove"
 							>
@@ -359,7 +359,7 @@ export function EditableCell({
 							className="cell-chip-remove"
 							onClick={(e) => {
 								e.stopPropagation();
-								table.options.meta?.updateCell?.(row.index, column.id, null);
+								table.options.meta?.updateCell?.(row.original.file, column.id, null);
 							}}
 							title="Remove"
 						>
@@ -390,12 +390,12 @@ export function EditableCell({
 
 		const handleRemove = (index: number) => {
 			const newValue = currentValues.filter((_, i) => i !== index);
-			table.options.meta?.updateCell?.(row.index, column.id, newValue);
+			table.options.meta?.updateCell?.(row.original.file, column.id, newValue);
 		};
 
 		const handleAdd = (newValue: string) => {
 			const updated = [...currentValues, newValue];
-			table.options.meta?.updateCell?.(row.index, column.id, updated);
+			table.options.meta?.updateCell?.(row.original.file, column.id, updated);
 		};
 
 		// Editing mode - show ChipEditor with inline cursor
