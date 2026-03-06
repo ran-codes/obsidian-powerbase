@@ -17,7 +17,7 @@ export function QuickActionsCell({
 		| QuickActionConfig[]
 		| undefined;
 	const executeQuickAction = table.options.meta?.executeQuickAction as
-		| ((rowIndex: number, action: QuickActionConfig) => Promise<void>)
+		| ((file: import('obsidian').TFile, action: QuickActionConfig) => Promise<void>)
 		| undefined;
 
 	const handleClick = useCallback(
@@ -26,7 +26,7 @@ export function QuickActionsCell({
 
 			setExecutingId(action.id);
 			try {
-				await executeQuickAction(row.index, action);
+				await executeQuickAction(row.original.file, action);
 				// Show success state briefly
 				setSuccessId(action.id);
 				setTimeout(() => setSuccessId(null), 800);
@@ -36,7 +36,7 @@ export function QuickActionsCell({
 				setExecutingId(null);
 			}
 		},
-		[executeQuickAction, executingId, row.index]
+		[executeQuickAction, executingId, row.original.file]
 	);
 
 	if (!quickActions || quickActions.length === 0) {

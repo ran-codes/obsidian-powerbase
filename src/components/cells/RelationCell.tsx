@@ -64,18 +64,18 @@ export function RelationCell({
 			const remaining = links
 				.filter((_, i) => i !== index)
 				.map((l) => l.raw);
-			table.options.meta?.updateRelation(row.index, column.id, remaining);
+			table.options.meta?.updateRelation(row.original.file, column.id, remaining);
 		},
-		[links, table, row.index, column.id]
+		[links, table, row.original.file, column.id]
 	);
 
 	const handleAdd = useCallback(
 		(notePath: string) => {
 			const wikilink = ParseService.formatAsWikiLink(notePath);
 			const newLinks = [...links.map(l => l.raw), wikilink];
-			table.options.meta?.updateRelation(row.index, column.id, newLinks);
+			table.options.meta?.updateRelation(row.original.file, column.id, newLinks);
 		},
-		[links, table, row.index, column.id]
+		[links, table, row.original.file, column.id]
 	);
 
 	// Edit mode - inline ChipEditor

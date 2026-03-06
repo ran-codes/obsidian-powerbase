@@ -35,12 +35,12 @@ import { ColumnContextMenu } from './ColumnContextMenu';
 declare module '@tanstack/react-table' {
 	interface TableMeta<TData extends RowData> {
 		updateRelation: (
-			rowIndex: number,
+			file: import('obsidian').TFile,
 			columnId: string,
 			newLinks: string[]
 		) => void;
 		updateCell?: (
-			rowIndex: number,
+			file: import('obsidian').TFile,
 			columnId: string,
 			value: any
 		) => void;
@@ -53,7 +53,7 @@ declare module '@tanstack/react-table' {
 		isColumnPriorityEnhanced: (columnId: string) => boolean;
 		isColumnStatusEnhanced: (columnId: string) => boolean;
 		quickActions?: QuickActionConfig[];
-		executeQuickAction?: (rowIndex: number, action: QuickActionConfig) => Promise<void>;
+		executeQuickAction?: (file: import('obsidian').TFile, action: QuickActionConfig) => Promise<void>;
 	}
 }
 
@@ -281,21 +281,15 @@ export function RelationalTable({
 		},
 		meta: {
 			updateRelation: (
-				rowIndex: number,
+				file: TFile,
 				columnId: string,
 				newLinks: string[]
 			) => {
-				const file = rows[rowIndex]?.file;
-				if (file) {
-					onUpdateRelation(file, columnId, newLinks);
-				}
+				onUpdateRelation(file, columnId, newLinks);
 			},
 			updateCell: onUpdateCell
-				? (rowIndex: number, columnId: string, value: any) => {
-						const file = rows[rowIndex]?.file;
-						if (file) {
-							onUpdateCell(file, columnId, value);
-						}
+				? (file: TFile, columnId: string, value: any) => {
+						onUpdateCell(file, columnId, value);
 				  }
 				: undefined,
 			focusedCell,
@@ -336,11 +330,8 @@ export function RelationalTable({
 			},
 			quickActions,
 			executeQuickAction: onExecuteQuickAction
-				? async (rowIndex: number, action: QuickActionConfig) => {
-						const file = rows[rowIndex]?.file;
-						if (file) {
-							await onExecuteQuickAction(file, action);
-						}
+				? async (file: TFile, action: QuickActionConfig) => {
+						await onExecuteQuickAction(file, action);
 				  }
 				: undefined,
 		},
